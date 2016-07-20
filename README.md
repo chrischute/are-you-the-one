@@ -1,4 +1,6 @@
 # How to beat *[Are You The One?](http://www.mtv.com/shows/are-you-the-one)*
-*Are You The One?* is a reality TV show on MTV in which ten men and ten women are grouped together. There are ten pairs of soulmates, and their goal is to guess these pairs in ten weeks or fewer.
+*Are You The One?* is a reality TV show on MTV in which ten men and ten women seek to find true love. Unbeknownst to them, their true soulmate has been found by MTV, and he/she is right before their eyes on an island. Their goal is to match themselves in soulmate pairings, and they must do so in only ten weeks. As if letting love slip through one's fingers weren't scary enough, a single failure to find one's true love causes the entire group to forgo one million US dollars.
 
-Our goal is to prove that this can always be done, and with no knowledge of the contestants' personalities. We do so with a multi-threaded C++ simulation of a simple guessing algorithm, and show how it performs on all possible pairings of the contestants. If it can always win in 10 weeks, nobody should ever lose on *Are You The One?*
+Our goal is to prove that true love can always be found on *Are You The One?*, *i.e.*, nobody should ever lose. The contestants just need to spin up ```gcc``` and run this multi-threaded C++ simulation of a simple guessing algorithm.
+
+We prove that this algorithm always wins the game in ten weeks or fewer. It is deterministic, so we just run it on all possible pairings of the contestants. If it can always win in ten weeks, MTV might be in trouble--That is, if somebody on the show knows what ```gcc``` is.
