@@ -1,5 +1,10 @@
-/* Minimax Algorithm for Are You The One? TV Show */
-/* multithreaded mini-max solver */
+/**
+ * ayto.cpp
+ * Christopher Chute
+ *
+ * Simulator for Are You The One? (TV Show).
+ * Evaluates minimax query algorithm on all possible matchings.
+ */
 
 #include <iostream>
 #include <cstdlib>
@@ -10,6 +15,7 @@
 #include <map>
 #include <thread>
 #include <cmath>
+#include "ayto.h"
 
 #define TEN_FACT (3628800)
 #define NUM_CHUNKS (8)
@@ -28,26 +34,6 @@ using std::next_permutation;
 using std::max_element;
 using std::reverse;
 using std::thread;
-
-struct args {
-    vector<string> *perms;
-    vector<string> *chunk;
-    pair<string, int> *cd;
-    int thread_id;
-};
-
-int evaluate(const string &sol, const string &query);
-vector<string> remove_perms(vector<string> &perms, int eval, string &query);
-pair<string, int> guess_tb(vector<string> &perms, vector<string> &guessed_tb, int turn);
-pair<string, int> guess_pm(vector<string> &perms, vector<string> &guessed, int turn);
-void make_chunks(vector<string> &orig, vector<vector<string> > &chunks, int n);
-string min_candidate(pair<string, int> *candidates, int n);
-void get_score(struct args *args);
-int wc_response(string &guess, vector<string> &perms);
-bool prcmp(pair<int, int> x, pair<int, int> y);
-string get_worst_sequence(int sz);
-void sequence_print(string s);
-struct args **create_args(vector<string> &perms, pair<string, int> *cd, vector<string> &chunk, int thread_id);
 
 vector<string> ORIGPERMS;
 
