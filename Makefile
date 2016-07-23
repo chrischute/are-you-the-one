@@ -4,14 +4,18 @@
 CC     = g++
 CFLAGS = -std=c++11 -Wall -lpthread
 TARGET = ayto
+DPNDS1 = Perm
 
 all: $(TARGET)
 
-$(TARGET): $(TARGET).o
-	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).o
+$(TARGET): $(TARGET).o $(DPNDS1).o
+	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).o $(DPNDS1).o
 
-$(TARGET).o: $(TARGET).cpp $(TARGET).h
+$(TARGET).o: $(TARGET).cpp $(DPNDS1).h
 	$(CC) $(CFLAGS) -c $(TARGET).cpp
+
+$(DPNDS1).o: $(DPNDS1).cpp $(DPNDS1).h
+	$(CC) $(CFLAGS) -c $(DPNDS1).cpp
 
 clean:
 	$(RM) $(TARGET) *.o *~
