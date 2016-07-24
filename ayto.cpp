@@ -6,33 +6,208 @@
  */
 
 #include <iostream>
-#include <cstdlib>
-#include <ctime>
-#include <cassert>
-#include <algorithm>
-#include <numeric>
-#include <string>
 #include <vector>
 #include <map>
 #include <thread>
-#include <cmath>
 #include "Perm.h"
 
-#define TEN_FACT (3628800)
 #define NUM_CHUNKS (8)
+#define NUM_PAIRS (10)
+#define NUM_PAIRS_SQUARED (100)
 #define DIGITS ("0123456789")
-#define DUMMY ("8476392105")
+#define RAND_ANSWER ("6457382901")
+#define G1 ("8091523647")
+#define G2 ("4531987620")
+#define G3 ("7294053618")
+#define G4 ("8403279651")
+#define G5 ("7825169430")
 
 using namespace std;
 
+typedef struct args Thread_args;
+struct args {
+    int _id;                       // First digit of perms checked by this thread.
+    Perms _poss;                   // All permutations still possible to be the answer.
+    Perms _queries_made;           // All queries made so far.
+    map<Perm, int> *_best_queries; // Where each thread will store it's best query.
+    mutex *_mutex;                 // Mutex for the shared _best_queries map.
+};
+
+inline int sq(int x) { return x * x; }
+
+// minimax_per_thread: run minimax on all permutations with id as first digit.
+void minimax_per_thread(Thread_args *args)
+{
+    Perms poss = args->_poss;
+	Perms queries_made = args->_queries_made;
+	map<Perm, int> *best_queries = args->_best_queries; // Place best query from chunk here.
+	int thread_id = args->_id;
+    mutex *write_lock = args->_mutex;
+
+	// Evaluate all permutations with thread_id as first digit, so remove first digit
+    const char fd[] = { static_cast<char>('0' + thread_id) };
+    const string first_digit = string(fd, 1); // stays fixed as we loop over permutations of last_nine_digits
+    const string digits = DIGITS;
+    string last_nine_digits = digits.substr(0, thread_id) + digits.substr(thread_id + 1);
+    Perm best_query = DIGITS;
+    int best_worst_case = Perms_size(poss);
+
+    int i = 0;
+    do {
+        Perm query = first_digit + last_nine_digits;
+        if (i++ % 36288 == 0) { // Print every 1/10th of the way for each thread.
+            write_lock->lock();
+            cout << "Thread " << thread_id << ": " << Perm_tostring(query) << endl;
+            write_lock->unlock();
+        }
+        if (!is_Perm_in_Perms(query, queries_made)) {
+            vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
+            // Check how many possibilities would remain after guessing query
+            for (Perms_citer it = poss->begin(); it != poss->end(); ++it) {
+                match_count[Perm_distance(query, *it)] += 1;
+            }
+            // Find the # remaining in the worst-case scenario.
+            int worst_case =
+                    *max_element(match_count.begin(), match_count.end());
+            // If this is lowest worst-case #remaining, set low water mark.
+            if (worst_case < best_worst_case) {
+                best_query = query;
+                best_worst_case = worst_case;
+            }
+        }
+    } while (next_permutation(last_nine_digits.begin(), last_nine_digits.end()));
+
+	write_lock->lock();
+    best_queries->insert(pair<Perm, int>(best_query, best_worst_case));
+    write_lock->unlock();
+
+	return;
+}
+
+Perm minimax(Perms poss, Perms queries_made)
+{
+	Perm best_query = "";
+    int best_worst_case = Perms_size(poss);
+
+	// Spin up 10 threads to run minimax in parallel.
+    map<Perm, int> *best_queries = new map<Perm, int>();
+    mutex *best_queries_lock = new mutex();
+    vector<thread> thread_jobs;
+    vector<Thread_args *> thread_args;
+    for (int id = 0; id < NUM_PAIRS; ++id) {
+        Thread_args *args = new Thread_args {
+                ._id = id,
+                ._poss = poss,
+                ._queries_made = queries_made,
+                ._best_queries = best_queries,
+                ._mutex = best_queries_lock
+        };
+        thread_args.push_back(args);
+        thread_jobs.push_back(thread(minimax_per_thread, args));
+    }
+    // Wait for all threads to finish up.
+    for (vector<thread>::iterator it = thread_jobs.begin();
+            it != thread_jobs.end();
+            ++it) {
+        it->join();
+    }
+
+    // Find the best worst-case #remaining in candidates.
+    for (map<Perm, int>::const_iterator it = best_queries->begin();
+            it != best_queries->end();
+            ++it) {
+        Perm query = it->first;
+        int worst_case_num_remaining = it->second;
+
+        if (worst_case_num_remaining < best_worst_case) {
+            best_worst_case = worst_case_num_remaining;
+            best_query = query;
+        }
+    }
+
+    // Clean up allocated args, map, and mutex.
+    for (vector<Thread_args *>::iterator it = thread_args.begin();
+            it != thread_args.end();
+            ++it) {
+        delete *it;
+    }
+    delete best_queries;
+    delete best_queries_lock;
+
+	return best_query;
+}
+
+// Converts 2-digit index to permutation.
+Perm i_2digit_to_Perm(int i)
+{
+    const char p[] = {
+            static_cast<char>('0' + (i / 10)),
+            static_cast<char>('0' + (i % 10))
+    };
+    return Perm_from_chars(p, 2);
+}
+
 Perm get_truthbooth(Perms poss, Perms queries_made)
 {
-	return "01";
+	int *pair_count = new int[NUM_PAIRS_SQUARED]();
+	Perm best_pair = "00";
+
+	if (Perms_size(queries_made) > 0) {
+		for (Perms_citer it = poss->begin(); it != poss->end(); ++it) {
+			for (int i = 0; i < NUM_PAIRS; ++i) {
+				int digit = (*it)[i] - '0';
+				pair_count[NUM_PAIRS * i + digit] += 1;
+			}
+		}
+
+		// Ideally a pairing occurs in 1/2 of all possible answers
+		int ideal_count = Perms_size(poss) / 2;
+		int closest_dist_sq = sq(Perms_size(poss));
+		int closest_index = -1;
+		for (int i = 0; i < NUM_PAIRS_SQUARED; ++i) {
+			if (!is_Perm_in_Perms(i_2digit_to_Perm(i), queries_made) &&
+					sq(pair_count[i] - ideal_count) < closest_dist_sq) {
+				closest_dist_sq = sq(pair_count[i] - ideal_count);
+				closest_index = i;
+			}
+		}
+
+		best_pair = i_2digit_to_Perm(closest_index);
+	}
+
+	delete[] pair_count;
+	return best_pair;
 }
 
 Perm get_fullpairing(Perms poss, Perms queries_made)
 {
-	return "1234567890";
+    if (Perms_size(poss) == 1) {
+        return Perms_get(poss, 0);
+    }
+
+	Perm full_to_guess = DIGITS;
+	switch (Perms_size(queries_made)) {
+		case 0:
+			full_to_guess = G1;
+			break;
+		case 1:
+			full_to_guess = G2;
+			break;
+		case 2:
+			full_to_guess = G3;
+			break;
+		case 3:
+			full_to_guess = G4;
+			break;
+		case 4:
+			full_to_guess = G5;
+			break;
+		default:
+			full_to_guess = minimax(poss, queries_made);
+			break;
+	}
+
+	return full_to_guess;
 }
 
 void simulate_ayto_season(Perm answer)
@@ -41,6 +216,7 @@ void simulate_ayto_season(Perm answer)
 	Perms tb_queries = Perms_init_empty(); // Queries submitted in truth booth.
 	Perms fp_queries = Perms_init_empty(); // Queries submitted in perf. match.
 
+	cout << "Down to " << Perms_size(poss) << " remaining." << endl;
 	cout << "Answer " << Perm_tostring(answer) << endl;
 	while (true) {
 		cout << "Round " << (Perms_size(tb_queries) + 1) << endl;
@@ -51,7 +227,7 @@ void simulate_ayto_season(Perm answer)
 		int was_tb_correct = Perm_distance(pair_to_guess, answer);
 		poss = Perms_filter(poss, pair_to_guess, was_tb_correct);
 
-		cout << "Full pairing... ";
+		cout << "Full pairing... " << flush;
 		Perm full_to_guess = get_fullpairing(poss, fp_queries);
 		cout << full_to_guess << endl;
 		Perms_add(fp_queries, full_to_guess);
@@ -60,9 +236,11 @@ void simulate_ayto_season(Perm answer)
 			break;
 		}
 		poss = Perms_filter(poss, full_to_guess, num_fp_correct);
+
+		cout << "Down to " << Perms_size(poss) << " remaining." << endl;
 	}
 
-	cout << "Results:";
+	cout << "Results:" << endl;
 	for (int i = 0; i < Perms_size(tb_queries); ++i) {
 		cout << "(" << i << ") "
 			 << Perm_tostring(Perms_get(tb_queries, i)) << ", "
@@ -86,7 +264,7 @@ void usage(void)
 
 int main(int argc, char **argv)
 {
-	Perm answer = DUMMY;       // The hidden matching.
+	Perm answer = RAND_ANSWER;       // The hidden matching.
 
 	if (is_runall(argc, argv)) {
 		// Run on all 10! hidden matchings.
