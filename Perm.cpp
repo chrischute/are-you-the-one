@@ -44,6 +44,23 @@ Perms Perms_filter(const Perms before, const Perm against, const int n)
     return after;
 }
 
+
+Perms Perms_init_from_file(std::string path)
+{
+    Perms perms = Perms_init_empty();
+    Perm line;
+    ifstream fin(path);
+
+    while (fin >> line) {
+        Perms_add(perms, line);
+        cout << "Added: " << line << endl;
+    }
+
+    fin.close();
+    cout << "Perms size: " << Perms_size(perms) << endl;
+    return perms;
+}
+
 bool is_Perm_in_Perms(const Perm needle, const Perms haystack)
 {
     return find(haystack->begin(), haystack->end(), needle) !=

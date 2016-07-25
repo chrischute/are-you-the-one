@@ -18,6 +18,7 @@
 #define NUM_PAIRS (10)
 #define NUM_PAIRS_SQUARED (100)
 #define FULL_MINIMAX_THRESHOLD (500) // Only do full minimax when <= this # left.
+#define QUERY_POOL ("Scripts/query_pool.txt")
 #define DIGITS ("0123456789")
 #define RAND_ANSWER ("6457382901")
 #define G1 ("8091523647")
@@ -82,7 +83,6 @@ void minimax_per_thread(Thread_args *args)
 	        }
 	    } while (next_permutation(last_nine_digits.begin(), last_nine_digits.end()));
 	} else {
-		cout << "Partial minimax where " << Perms_size(poss_answers) << " remain." << endl;
 	    for (Perms_citer poss_query = poss_queries->begin();
 	         poss_query != poss_queries->end();
 	         ++poss_query) {
@@ -333,6 +333,9 @@ void usage(void)
 int main(int argc, char **argv)
 {
 	Perm answer = RAND_ANSWER;       // The hidden matching.
+
+	Perms p = Perms_init_from_file(QUERY_POOL);
+	return 0;
 
 	if (is_runall(argc, argv)) {
 		// Run on all 10! hidden matchings.

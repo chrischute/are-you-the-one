@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -24,6 +25,7 @@ typedef std::vector<Perm>::const_iterator Perms_citer;
 
 Perms Perms_init_empty(void);
 Perms Perms_init_full(void);
+Perms Perms_init_from_file(std::string path);
 void Perms_destroy(Perms p);
 void Perms_add(Perms p, const Perm to_add);
 Perm Perms_get(const Perms p, const int i);
