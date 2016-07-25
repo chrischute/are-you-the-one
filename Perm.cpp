@@ -52,7 +52,8 @@ bool is_Perm_in_Perms(const Perm needle, const Perms haystack)
 
 Perm Perms_get(const Perms p, const int i)
 {
-    if (i < 0 || i >= p->size()) {
+    int sz = p->size();
+    if (i < 0 || i >= sz) {
         return "";
     }
     return (*p)[i];

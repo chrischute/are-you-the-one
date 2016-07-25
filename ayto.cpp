@@ -5,16 +5,19 @@
  * Simulates minimax query algorithm for MTV's Are You The One?
  */
 
+#include <algorithm>
 #include <iostream>
-#include <vector>
 #include <map>
+#include <mutex>
+#include <cstring>
 #include <thread>
+#include <vector>
 #include "Perm.h"
 
 #define NUM_CHUNKS (8)
 #define NUM_PAIRS (10)
 #define NUM_PAIRS_SQUARED (100)
-#define FULL_MINIMAX_THRESHOLD (5000) // Only do full minimax when < this # left.
+#define FULL_MINIMAX_THRESHOLD (500) // Only do full minimax when <= this # left.
 #define DIGITS ("0123456789")
 #define RAND_ANSWER ("6457382901")
 #define G1 ("8091523647")
@@ -27,6 +30,7 @@ using namespace std;
 
 typedef struct args Thread_args;
 struct args {
+	int _id;
     Perms _poss_answers;           // All permutations still possible to be the answer.
     Perms _poss_queries;           // The chunk of potential queries to evaluate.
     Perms _queries_made;           // All queries made so far.
@@ -39,6 +43,7 @@ inline int sq(int x) { return x * x; }
 // minimax_per_thread: run minimax on all permutations with id as first digit.
 void minimax_per_thread(Thread_args *args)
 {
+	int thread_id = args->_id;
     Perms poss_answers = args->_poss_answers;
     Perms poss_queries = args->_poss_queries;
 	Perms queries_made = args->_queries_made;
@@ -56,18 +61,14 @@ void minimax_per_thread(Thread_args *args)
 	    const string digits = DIGITS;
 	    string last_nine_digits = digits.substr(0, thread_id) + digits.substr(thread_id + 1);
 
-	    int i = 0;
 	    do {
 	        Perm query = first_digit + last_nine_digits;
-	        if (i++ % 36288 == 0) { // Print every 1/10th of the way for each thread.
-	            write_lock->lock();
-	            cout << "Thread " << thread_id << ": " << Perm_tostring(query) << endl;
-	            write_lock->unlock();
-	        }
 	        if (!is_Perm_in_Perms(query, queries_made)) {
 	            vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
 	            // Check how many possibilities would remain after guessing query
-	            for (Perms_citer it = poss->begin(); it != poss->end(); ++it) {
+	            for (Perms_citer it = poss_answers->begin();
+	            	it != poss_answers->end();
+	            	++it) {
 	                match_count[Perm_distance(query, *it)] += 1;
 	            }
 	            // Find the # remaining in the worst-case scenario.
@@ -81,6 +82,7 @@ void minimax_per_thread(Thread_args *args)
 	        }
 	    } while (next_permutation(last_nine_digits.begin(), last_nine_digits.end()));
 	} else {
+		cout << "Partial minimax where " << Perms_size(poss_answers) << " remain." << endl;
 	    for (Perms_citer poss_query = poss_queries->begin();
 	         poss_query != poss_queries->end();
 	         ++poss_query) {
@@ -116,15 +118,17 @@ Perm minimax(Perms poss, Perms queries_made)
 	Perm best_query = "";
     int best_worst_case = Perms_size(poss);
 
-		// Spin up 10 threads to run minimax in parallel.
-	    map<Perm, int> *best_queries = new map<Perm, int>();
-	    mutex *best_queries_lock = new mutex();
-	    vector<thread> thread_jobs;
-	    vector<Thread_args *> thread_args;
+	// Spin up 10 threads to run minimax in parallel.
+    map<Perm, int> *best_queries = new map<Perm, int>();
+    mutex *best_queries_lock = new mutex();
+    vector<thread> thread_jobs;
+    vector<Thread_args *> thread_args;
+    Perms chunks[NUM_PAIRS] = { NULL };
 
     if (Perms_size(poss) > FULL_MINIMAX_THRESHOLD) {
+    	cout << "Partial minimax with " << Perms_size(poss)
+    		 << " answers remaining." << endl;
     	// Divide the possible queries into 10 chunks to evaluate.
-	    Perms chunks[NUM_PAIRS];
 	    int chunk_size = Perms_size(poss) / NUM_PAIRS;
 	    int chunks_with_extra = Perms_size(poss) % NUM_PAIRS;
 	    for (int i = 0; i < NUM_PAIRS; ++i) {
@@ -139,6 +143,7 @@ Perm minimax(Perms poss, Perms queries_made)
 
 	    for (int id = 0; id < NUM_PAIRS; ++id) {
 	        Thread_args *args = new Thread_args {
+	        		._id = id,
 	                ._poss_answers = poss,
 	                ._poss_queries = chunks[id],
 	                ._queries_made = queries_made,
@@ -149,8 +154,11 @@ Perm minimax(Perms poss, Perms queries_made)
 	        thread_jobs.push_back(thread(minimax_per_thread, args));
 	    }
 	} else {
+    	cout << "Full minimax with " << Perms_size(poss)
+    		 << " answers remaining." << endl;
 	    for (int id = 0; id < NUM_PAIRS; ++id) {
 	        Thread_args *args = new Thread_args {
+	        		._id = id,
 	                ._poss_answers = poss,
 	                ._poss_queries = NULL,
 	                ._queries_made = queries_made,
@@ -188,7 +196,9 @@ Perm minimax(Perms poss, Perms queries_made)
         delete *it;
     }
     for (int i = 0; i < NUM_PAIRS; ++i) {
-        Perms_destroy(chunks[i]);
+    	if (chunks[i] != NULL) {
+        	Perms_destroy(chunks[i]);
+        }
     }
     delete best_queries;
     delete best_queries_lock;

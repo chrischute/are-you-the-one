@@ -8,9 +8,10 @@
 #ifndef GUARD_PERM_H
 #define GUARD_PERM_H
 
+#include <algorithm>
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 
 typedef std::string Perm;          // Represent permutations with strings.
