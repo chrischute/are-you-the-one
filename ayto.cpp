@@ -14,6 +14,7 @@
 #define NUM_CHUNKS (8)
 #define NUM_PAIRS (10)
 #define NUM_PAIRS_SQUARED (100)
+#define FULL_MINIMAX_THRESHOLD (5000) // Only do full minimax when < this # left.
 #define DIGITS ("0123456789")
 #define RAND_ANSWER ("6457382901")
 #define G1 ("8091523647")
@@ -43,31 +44,65 @@ void minimax_per_thread(Thread_args *args)
 	Perms queries_made = args->_queries_made;
 	map<Perm, int> *best_queries = args->_best_queries; // Place best query from chunk here.
     mutex *write_lock = args->_mutex;
+    bool do_full_minimax = poss_queries == NULL;
 
 	// Find the query in poss_queries which eliminates the most possible answers.
     Perm best_query = DIGITS;
     int best_worst_case = Perms_size(poss_answers);
-    for (Perms_citer poss_query = poss_queries->begin();
-         poss_query != poss_queries->end();
-         ++poss_query) {
-        Perm query = *poss_query;
 
-        if (!is_Perm_in_Perms(query, queries_made)) {
-            vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
-            // Check how many possibilities would remain after guessing query
-            for (Perms_citer it = poss_answers->begin(); it != poss_answers->end(); ++it) {
-                match_count[Perm_distance(query, *it)] += 1;
-            }
-            // Find the # remaining in the worst-case scenario.
-            int worst_case =
-                    *max_element(match_count.begin(), match_count.end());
-            // If this is lowest worst-case #remaining, set low water mark.
-            if (worst_case < best_worst_case) {
-                best_query = query;
-                best_worst_case = worst_case;
-            }
-        }
-    }
+    if (do_full_minimax) {
+    	const char fd[] = { static_cast<char>('0' + thread_id) };
+	    const string first_digit = string(fd, 1); // stays fixed as we loop over permutations of last_nine_digits
+	    const string digits = DIGITS;
+	    string last_nine_digits = digits.substr(0, thread_id) + digits.substr(thread_id + 1);
+
+	    int i = 0;
+	    do {
+	        Perm query = first_digit + last_nine_digits;
+	        if (i++ % 36288 == 0) { // Print every 1/10th of the way for each thread.
+	            write_lock->lock();
+	            cout << "Thread " << thread_id << ": " << Perm_tostring(query) << endl;
+	            write_lock->unlock();
+	        }
+	        if (!is_Perm_in_Perms(query, queries_made)) {
+	            vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
+	            // Check how many possibilities would remain after guessing query
+	            for (Perms_citer it = poss->begin(); it != poss->end(); ++it) {
+	                match_count[Perm_distance(query, *it)] += 1;
+	            }
+	            // Find the # remaining in the worst-case scenario.
+	            int worst_case =
+	                    *max_element(match_count.begin(), match_count.end());
+	            // If this is lowest worst-case #remaining, set low water mark.
+	            if (worst_case < best_worst_case) {
+	                best_query = query;
+	                best_worst_case = worst_case;
+	            }
+	        }
+	    } while (next_permutation(last_nine_digits.begin(), last_nine_digits.end()));
+	} else {
+	    for (Perms_citer poss_query = poss_queries->begin();
+	         poss_query != poss_queries->end();
+	         ++poss_query) {
+	        Perm query = *poss_query;
+
+	        if (!is_Perm_in_Perms(query, queries_made)) {
+	            vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
+	            // Check how many possibilities would remain after guessing query
+	            for (Perms_citer it = poss_answers->begin(); it != poss_answers->end(); ++it) {
+	                match_count[Perm_distance(query, *it)] += 1;
+	            }
+	            // Find the # remaining in the worst-case scenario.
+	            int worst_case =
+	                    *max_element(match_count.begin(), match_count.end());
+	            // If this is lowest worst-case #remaining, set low water mark.
+	            if (worst_case < best_worst_case) {
+	                best_query = query;
+	                best_worst_case = worst_case;
+	            }
+	        }
+	    }
+	}
 
 	write_lock->lock();
     best_queries->insert(pair<Perm, int>(best_query, best_worst_case));
@@ -81,36 +116,51 @@ Perm minimax(Perms poss, Perms queries_made)
 	Perm best_query = "";
     int best_worst_case = Perms_size(poss);
 
-    // Divide the possible queries into 10 chunks to evaluate.
-    Perms chunks[NUM_PAIRS];
-    int chunk_size = Perms_size(poss) / NUM_PAIRS;
-    int chunks_with_extra = Perms_size(poss) % NUM_PAIRS;
-    for (int i = 0; i < NUM_PAIRS; ++i) {
-        chunks[i] = Perms_init_empty();
-        int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
-        Perms_iter begin_chunk = poss->begin();
-        Perms_iter end_chunk = begin_chunk + n_to_add;
+		// Spin up 10 threads to run minimax in parallel.
+	    map<Perm, int> *best_queries = new map<Perm, int>();
+	    mutex *best_queries_lock = new mutex();
+	    vector<thread> thread_jobs;
+	    vector<Thread_args *> thread_args;
 
-        Perms chunk = new vector<string>(begin_chunk, end_chunk);
-        chunks[i] = chunk;
-    }
+    if (Perms_size(poss) > FULL_MINIMAX_THRESHOLD) {
+    	// Divide the possible queries into 10 chunks to evaluate.
+	    Perms chunks[NUM_PAIRS];
+	    int chunk_size = Perms_size(poss) / NUM_PAIRS;
+	    int chunks_with_extra = Perms_size(poss) % NUM_PAIRS;
+	    for (int i = 0; i < NUM_PAIRS; ++i) {
+	        chunks[i] = Perms_init_empty();
+	        int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
+	        Perms_iter begin_chunk = poss->begin();
+	        Perms_iter end_chunk = begin_chunk + n_to_add;
 
-	// Spin up 10 threads to run minimax in parallel.
-    map<Perm, int> *best_queries = new map<Perm, int>();
-    mutex *best_queries_lock = new mutex();
-    vector<thread> thread_jobs;
-    vector<Thread_args *> thread_args;
-    for (int id = 0; id < NUM_PAIRS; ++id) {
-        Thread_args *args = new Thread_args {
-                ._poss_answers = poss,
-                ._poss_queries = chunks[id],
-                ._queries_made = queries_made,
-                ._best_queries = best_queries,
-                ._mutex = best_queries_lock
-        };
-        thread_args.push_back(args);
-        thread_jobs.push_back(thread(minimax_per_thread, args));
-    }
+	        Perms chunk = new vector<string>(begin_chunk, end_chunk);
+	        chunks[i] = chunk;
+	    }
+
+	    for (int id = 0; id < NUM_PAIRS; ++id) {
+	        Thread_args *args = new Thread_args {
+	                ._poss_answers = poss,
+	                ._poss_queries = chunks[id],
+	                ._queries_made = queries_made,
+	                ._best_queries = best_queries,
+	                ._mutex = best_queries_lock
+	        };
+	        thread_args.push_back(args);
+	        thread_jobs.push_back(thread(minimax_per_thread, args));
+	    }
+	} else {
+	    for (int id = 0; id < NUM_PAIRS; ++id) {
+	        Thread_args *args = new Thread_args {
+	                ._poss_answers = poss,
+	                ._poss_queries = NULL,
+	                ._queries_made = queries_made,
+	                ._best_queries = best_queries,
+	                ._mutex = best_queries_lock
+	        };
+	        thread_args.push_back(args);
+	        thread_jobs.push_back(thread(minimax_per_thread, args));
+	    }
+	}
     // Wait for all threads to finish up.
     for (vector<thread>::iterator it = thread_jobs.begin();
             it != thread_jobs.end();
