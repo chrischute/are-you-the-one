@@ -26,8 +26,8 @@ using namespace std;
 
 typedef struct args Thread_args;
 struct args {
-    int _id;                       // First digit of perms checked by this thread.
-    Perms _poss;                   // All permutations still possible to be the answer.
+    Perms _poss_answers;           // All permutations still possible to be the answer.
+    Perms _poss_queries;           // The chunk of potential queries to evaluate.
     Perms _queries_made;           // All queries made so far.
     map<Perm, int> *_best_queries; // Where each thread will store it's best query.
     mutex *_mutex;                 // Mutex for the shared _best_queries map.
@@ -38,32 +38,24 @@ inline int sq(int x) { return x * x; }
 // minimax_per_thread: run minimax on all permutations with id as first digit.
 void minimax_per_thread(Thread_args *args)
 {
-    Perms poss = args->_poss;
+    Perms poss_answers = args->_poss_answers;
+    Perms poss_queries = args->_poss_queries;
 	Perms queries_made = args->_queries_made;
 	map<Perm, int> *best_queries = args->_best_queries; // Place best query from chunk here.
-	int thread_id = args->_id;
     mutex *write_lock = args->_mutex;
 
-	// Evaluate all permutations with thread_id as first digit, so remove first digit
-    const char fd[] = { static_cast<char>('0' + thread_id) };
-    const string first_digit = string(fd, 1); // stays fixed as we loop over permutations of last_nine_digits
-    const string digits = DIGITS;
-    string last_nine_digits = digits.substr(0, thread_id) + digits.substr(thread_id + 1);
+	// Find the query in poss_queries which eliminates the most possible answers.
     Perm best_query = DIGITS;
-    int best_worst_case = Perms_size(poss);
+    int best_worst_case = Perms_size(poss_answers);
+    for (Perms_citer poss_query = poss_queries->begin();
+         poss_query != poss_queries->end();
+         ++poss_query) {
+        Perm query = *poss_query;
 
-    int i = 0;
-    do {
-        Perm query = first_digit + last_nine_digits;
-        if (i++ % 36288 == 0) { // Print every 1/10th of the way for each thread.
-            write_lock->lock();
-            cout << "Thread " << thread_id << ": " << Perm_tostring(query) << endl;
-            write_lock->unlock();
-        }
         if (!is_Perm_in_Perms(query, queries_made)) {
             vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
             // Check how many possibilities would remain after guessing query
-            for (Perms_citer it = poss->begin(); it != poss->end(); ++it) {
+            for (Perms_citer it = poss_answers->begin(); it != poss_answers->end(); ++it) {
                 match_count[Perm_distance(query, *it)] += 1;
             }
             // Find the # remaining in the worst-case scenario.
@@ -75,7 +67,7 @@ void minimax_per_thread(Thread_args *args)
                 best_worst_case = worst_case;
             }
         }
-    } while (next_permutation(last_nine_digits.begin(), last_nine_digits.end()));
+    }
 
 	write_lock->lock();
     best_queries->insert(pair<Perm, int>(best_query, best_worst_case));
@@ -89,6 +81,20 @@ Perm minimax(Perms poss, Perms queries_made)
 	Perm best_query = "";
     int best_worst_case = Perms_size(poss);
 
+    // Divide the possible queries into 10 chunks to evaluate.
+    Perms chunks[NUM_PAIRS];
+    int chunk_size = Perms_size(poss) / NUM_PAIRS;
+    int chunks_with_extra = Perms_size(poss) % NUM_PAIRS;
+    for (int i = 0; i < NUM_PAIRS; ++i) {
+        chunks[i] = Perms_init_empty();
+        int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
+        Perms_iter begin_chunk = poss->begin();
+        Perms_iter end_chunk = begin_chunk + n_to_add;
+
+        Perms chunk = new vector<string>(begin_chunk, end_chunk);
+        chunks[i] = chunk;
+    }
+
 	// Spin up 10 threads to run minimax in parallel.
     map<Perm, int> *best_queries = new map<Perm, int>();
     mutex *best_queries_lock = new mutex();
@@ -96,8 +102,8 @@ Perm minimax(Perms poss, Perms queries_made)
     vector<Thread_args *> thread_args;
     for (int id = 0; id < NUM_PAIRS; ++id) {
         Thread_args *args = new Thread_args {
-                ._id = id,
-                ._poss = poss,
+                ._poss_answers = poss,
+                ._poss_queries = chunks[id],
                 ._queries_made = queries_made,
                 ._best_queries = best_queries,
                 ._mutex = best_queries_lock
@@ -125,11 +131,14 @@ Perm minimax(Perms poss, Perms queries_made)
         }
     }
 
-    // Clean up allocated args, map, and mutex.
+    // Clean up allocated args, chunks, map, and mutex.
     for (vector<Thread_args *>::iterator it = thread_args.begin();
             it != thread_args.end();
             ++it) {
         delete *it;
+    }
+    for (int i = 0; i < NUM_PAIRS; ++i) {
+        Perms_destroy(chunks[i]);
     }
     delete best_queries;
     delete best_queries_lock;
@@ -216,20 +225,19 @@ void simulate_ayto_season(Perm answer)
 	Perms tb_queries = Perms_init_empty(); // Queries submitted in truth booth.
 	Perms fp_queries = Perms_init_empty(); // Queries submitted in perf. match.
 
-	cout << "Down to " << Perms_size(poss) << " remaining." << endl;
 	cout << "Answer " << Perm_tostring(answer) << endl;
 	while (true) {
 		cout << "Round " << (Perms_size(tb_queries) + 1) << endl;
-		cout << "Truth booth... ";
+		//cout << "Truth booth... ";
 		Perm pair_to_guess = get_truthbooth(poss, tb_queries);
-		cout << pair_to_guess << endl;
+		//cout << pair_to_guess << endl;
 		Perms_add(tb_queries, pair_to_guess);
 		int was_tb_correct = Perm_distance(pair_to_guess, answer);
 		poss = Perms_filter(poss, pair_to_guess, was_tb_correct);
 
-		cout << "Full pairing... " << flush;
+		//cout << "Full pairing... " << flush;
 		Perm full_to_guess = get_fullpairing(poss, fp_queries);
-		cout << full_to_guess << endl;
+		//cout << full_to_guess << endl;
 		Perms_add(fp_queries, full_to_guess);
 		int num_fp_correct = Perm_distance(full_to_guess, answer);
 		if (num_fp_correct == Perm_length(answer)) {
@@ -242,7 +250,7 @@ void simulate_ayto_season(Perm answer)
 
 	cout << "Results:" << endl;
 	for (int i = 0; i < Perms_size(tb_queries); ++i) {
-		cout << "(" << i << ") "
+		cout << "[Round " << (i + 1) << "] "
 			 << Perm_tostring(Perms_get(tb_queries, i)) << ", "
 			 << Perm_tostring(Perms_get(fp_queries, i)) << "." << endl;
 	}
