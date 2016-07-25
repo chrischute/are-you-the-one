@@ -37,5 +37,6 @@ int Perm_distance(const Perm& p, const Perm& q);
 int Perm_length(const Perm& p);
 Perm Perm_from_chars(const char arr[], int len);
 std::string Perm_tostring(const Perm p);
+Perm Perm_fromstring(const std::string s);
 
 #endif

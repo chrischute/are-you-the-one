@@ -53,11 +53,9 @@ Perms Perms_init_from_file(std::string path)
 
     while (fin >> line) {
         Perms_add(perms, line);
-        cout << "Added: " << line << endl;
     }
 
     fin.close();
-    cout << "Perms size: " << Perms_size(perms) << endl;
     return perms;
 }
 
@@ -125,4 +123,9 @@ string Perm_tostring(const Perm p)
     builder << ")";
 
     return builder.str();
+}
+
+Perm Perm_fromstring(const string s)
+{
+    return (Perm) s;
 }
