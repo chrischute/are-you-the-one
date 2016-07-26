@@ -18,11 +18,11 @@
 #define NUM_CHUNKS (8)
 #define NUM_PAIRS (10)
 #define NUM_PAIRS_SQUARED (100)
-#define PARTIAL_MINIMAX_THRESHOLD (7500) // Start partial minimax when <= this # left.
-#define FULL_MINIMAX_THRESHOLD (250) // Only do full minimax when <= this # left.
+#define PARTIAL_MINIMAX_THRESHOLD (10000) // Start partial minimax when <= this # left.
+#define FULL_MINIMAX_THRESHOLD (500) // Only do full minimax when <= this # left.
 #define QUERY_POOL ("Scripts/query_pool.txt")
 #define DIGITS ("0123456789")
-#define RAND_ANSWER ("6457382901")
+#define RAND_ANSWER ("5602974183")
 #define G1 ("0123456789")
 #define G2 ("4579108623")
 
@@ -250,6 +250,7 @@ Perm get_truthbooth(Perms poss, Perms queries_made)
     int *pair_count = new int[NUM_PAIRS_SQUARED]();
     Perm best_pair = "00";
 
+    int closest_index = -1;
     if (Perms_size(queries_made) > 0) {
         for (Perms_citer it = poss->begin(); it != poss->end(); ++it) {
             for (int i = 0; i < NUM_PAIRS; ++i) {
@@ -261,7 +262,6 @@ Perm get_truthbooth(Perms poss, Perms queries_made)
         // Ideally a pairing occurs in 1/2 of all possible answers
         int ideal_count = Perms_size(poss) / 2;
         int closest_dist = Perms_size(poss) + 1;
-        int closest_index = -1;
         for (int i = 0; i < NUM_PAIRS_SQUARED; ++i) {
             if (!is_Perm_in_Perms(i_2digit_to_Perm(i), queries_made) &&
                     abs(pair_count[i] - ideal_count) < closest_dist) {
