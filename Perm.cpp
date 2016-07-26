@@ -59,7 +59,6 @@ Perms Perms_filter_for_pair(const Perms before, const Perm pair, const int is_ma
     }
 
     return after;
-
 }
 
 Perms Perms_init_from_file(std::string path)
@@ -115,6 +114,15 @@ int Perm_distance(const Perm& p, const Perm& q)
     }
 
     return n_matching;
+}
+
+int Perm_has_pair(const Perm &perm, const Perm &pair)
+{
+    assert(pair.size() == 2);
+    char c = pair[1];
+    int pos = pair[0] - '0';
+
+    return perm[pos] == c ? 1 : 0;
 }
 
 int Perm_length(const Perm& p)

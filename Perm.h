@@ -37,6 +37,7 @@ int Perms_size(const Perms p);
 
 int Perm_distance(const Perm& p, const Perm& q);
 int Perm_length(const Perm& p);
+int Perm_has_pair(const Perm& perm, const Perm& pair);
 Perm Perm_from_chars(const char arr[], int len);
 std::string Perm_tostring(const Perm p);
 Perm Perm_fromstring(const std::string s);

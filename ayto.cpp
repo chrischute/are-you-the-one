@@ -311,7 +311,7 @@ void simulate_ayto_season(Perm answer)
         Perm pair_to_guess = get_truthbooth(poss, tb_queries);
         //cout << pair_to_guess << endl;
         Perms_add(tb_queries, pair_to_guess);
-        int was_tb_correct = Perm_distance(pair_to_guess, answer);
+        int was_tb_correct = Perm_has_pair(answer, pair_to_guess);
         poss = Perms_filter_for_pair(poss, pair_to_guess, was_tb_correct);
 
         //cout << "Full pairing... " << flush;
