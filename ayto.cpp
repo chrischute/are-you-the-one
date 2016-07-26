@@ -19,10 +19,10 @@
 #define NUM_PAIRS (10)
 #define NUM_PAIRS_SQUARED (100)
 #define PARTIAL_MINIMAX_THRESHOLD (10000) // Start partial minimax when <= this # left.
-#define FULL_MINIMAX_THRESHOLD (500) // Only do full minimax when <= this # left.
-#define QUERY_POOL ("Scripts/query_pool.txt")
+#define FULL_MINIMAX_THRESHOLD (314) // Only do full minimax when <= this # left.
+#define QUERY_POOL ("test/query_pool.txt")
 #define DIGITS ("0123456789")
-#define RAND_ANSWER ("5602974183")
+#define RAND_ANSWER ("9352741680")
 #define G1 ("0123456789")
 #define G2 ("4579108623")
 
@@ -300,7 +300,7 @@ Perm get_fullpairing(Perms poss, Perms queries_made)
 
 void simulate_ayto_season(Perm answer)
 {
-    Perms poss = Perms_init_full(); // Remaning possibilities for answer.
+    Perms poss = Perms_init_full(); // Remaining possibilities for answer.
     Perms tb_queries = Perms_init_empty(); // Queries submitted in truth booth.
     Perms fp_queries = Perms_init_empty(); // Queries submitted in perf. match.
 
@@ -312,7 +312,7 @@ void simulate_ayto_season(Perm answer)
         //cout << pair_to_guess << endl;
         Perms_add(tb_queries, pair_to_guess);
         int was_tb_correct = Perm_distance(pair_to_guess, answer);
-        poss = Perms_filter(poss, pair_to_guess, was_tb_correct);
+        poss = Perms_filter_for_pair(poss, pair_to_guess, was_tb_correct);
 
         //cout << "Full pairing... " << flush;
         Perm full_to_guess = get_fullpairing(poss, fp_queries);
@@ -337,6 +337,57 @@ void simulate_ayto_season(Perm answer)
     Perms_destroy(poss);
 }
 
+void interactive_ayto_season()
+{
+    Perms poss = Perms_init_full(); // Remaining possibilities for answer.
+    Perms tb_queries = Perms_init_empty(); // Queries submitted in truth booth.
+    Perms fp_queries = Perms_init_empty(); // Queries submitted in perf. match.
+
+    cout << "Interactive Mode" << endl;
+    while (true) {
+        cout << "Round " << (Perms_size(tb_queries) + 1) << endl;
+
+        Perm pair_to_guess = get_truthbooth(poss, tb_queries);
+        cout << "Truth booth: Is there a '" << pair_to_guess[1] << "' in position "
+             << pair_to_guess[0] << " (indexed starting with 0)? [yes/no]" << endl;
+        Perms_add(tb_queries, pair_to_guess);
+        string response;
+        cin >> response;
+        if (response[0] == 'y' || response[0] == 'Y') {
+            poss = Perms_filter_for_pair(poss, pair_to_guess, 1);
+        } else {
+            poss = Perms_filter_for_pair(poss, pair_to_guess, 0);
+        }
+
+        Perm full_to_guess = get_fullpairing(poss, fp_queries);
+        cout << "Perfect matching: How many of the following are in the correct spot?" << endl;
+        cout << Perm_tostring(full_to_guess) << endl;
+        int num_fp_correct;
+        cin >> num_fp_correct;
+        Perms_add(fp_queries, full_to_guess);
+        if (num_fp_correct == NUM_PAIRS) {
+            break;
+        }
+        poss = Perms_filter(poss, full_to_guess, num_fp_correct);
+
+        if (Perms_size(poss) == 0) {
+            cout << "Error: That combination of responses is not possible." << endl
+                 << "Please check your responses and try again." << endl;
+            return;
+        }
+        cout << "Down to " << Perms_size(poss) << " remaining." << endl;
+    }
+
+    cout << "Results:" << endl;
+    for (int i = 0; i < Perms_size(tb_queries); ++i) {
+        cout << "[Round " << (i + 1) << "] "
+             << Perm_tostring(Perms_get(tb_queries, i)) << ", "
+             << Perm_tostring(Perms_get(fp_queries, i)) << "." << endl;
+    }
+
+    Perms_destroy(poss);
+}
+
 bool is_runall(int argc, char **argv)
 {
     return argc == 2 &&
@@ -344,13 +395,27 @@ bool is_runall(int argc, char **argv)
             || strncmp(argv[1], "-a", 2) == 0);
 }
 
-void usage(void)
+bool is_runfile(int argc, char **argv)
 {
-    cout << "usage: 'ayto n [\"sample\"]'" << endl;
+    return argc == 3 &&
+            (strncmp(argv[1], "-file", 5) == 0
+                || strncmp(argv[1], "-f", 2) == 0);
+
 }
 
-int main(int argc, char **argv)
+bool is_interactive_mode(int argc, char **argv) {
+    return argc == 2 && strncmp(argv[1], "-i", 2) == 0;
+}
+
+void usage(void)
 {
+    cout << "usage: ./ayto" << endl;
+    cout << "\t[-a | -all]                - Run on all permutations" << endl;
+    cout << "\t[[-f | -file] <file_name>] - Run on permutations in file" << endl;
+    // TODO: cout << "\t[-i]                       - Interactive, wait for response" << endl;
+}
+
+int main(int argc, char **argv) {
     Perm answer = RAND_ANSWER;       // The hidden matching.
 
     if (is_runall(argc, argv)) {
@@ -359,6 +424,15 @@ int main(int argc, char **argv)
         do {
             simulate_ayto_season(answer);
         } while (next_permutation(answer.begin(), answer.end()));
+    } else if (is_runfile(argc, argv)) {
+        Perms answers = Perms_init_from_file(argv[2]);
+        for (Perms_citer ans_iter = answers->begin();
+                ans_iter != answers->end();
+                ++ans_iter) {
+            simulate_ayto_season(*ans_iter);
+        }
+    } else if (is_interactive_mode(argc, argv)) {
+        interactive_ayto_season();
     } else if (argc == 1) {
         // Just run on a single hidden matching.
         simulate_ayto_season(answer);

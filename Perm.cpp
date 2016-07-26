@@ -44,6 +44,23 @@ Perms Perms_filter(const Perms before, const Perm against, const int n)
     return after;
 }
 
+Perms Perms_filter_for_pair(const Perms before, const Perm pair, const int is_match)
+{
+    assert(pair.size() == 2);
+    char c = pair[1];
+    int pos = pair[0] - '0';
+    Perms after = Perms_init_empty();
+
+    for (Perms_citer it = before->begin(); it != before->end(); ++it) {
+        if ((is_match && (*it)[pos] == c)
+                || (!is_match && (*it)[pos] != c)) {
+            after->push_back(*it);
+        }
+    }
+
+    return after;
+
+}
 
 Perms Perms_init_from_file(std::string path)
 {

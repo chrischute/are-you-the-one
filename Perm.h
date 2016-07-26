@@ -9,6 +9,7 @@
 #define GUARD_PERM_H
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -30,6 +31,7 @@ void Perms_destroy(Perms p);
 void Perms_add(Perms p, const Perm to_add);
 Perm Perms_get(const Perms p, const int i);
 Perms Perms_filter(const Perms p, const Perm against, const int n);
+Perms Perms_filter_for_pair(const Perms before, const Perm pair, const int is_match);
 bool is_Perm_in_Perms(const Perm needle, const Perms haystack);
 int Perms_size(const Perms p);
 

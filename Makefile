@@ -2,7 +2,7 @@
 # Christopher Chute
 
 CC     = g++
-CFLAGS = -std=c++11 -Wall -lpthread
+CFLAGS = -std=c++11 -Wall
 TARGET = ayto
 DPNDS1 = Perm
 

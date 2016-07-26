@@ -5,7 +5,7 @@ from sys import argv
 
 def main():
 	if (len(argv) != 2):
-		print 'Usage: python pool_generator.py NUM_TO_GENERATE'
+		print 'Usage: ./pool_generator.py NUM_TO_GENERATE'
 		return
 	num_to_generate = int(argv[1])
 	pool = {}
