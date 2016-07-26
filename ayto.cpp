@@ -311,18 +311,18 @@ void simulate_ayto_season(Perm answer)
         Perm pair_to_guess = get_truthbooth(poss, tb_queries);
         //cout << pair_to_guess << endl;
         Perms_add(tb_queries, pair_to_guess);
-        int was_tb_correct = Perm_has_pair(answer, pair_to_guess);
-        poss = Perms_filter_for_pair(poss, pair_to_guess, was_tb_correct);
+        int n_correct = Perm_has_pair(answer, pair_to_guess);
+        poss = Perms_filter(poss, pair_to_guess, n_correct);
 
         //cout << "Full pairing... " << flush;
         Perm full_to_guess = get_fullpairing(poss, fp_queries);
         //cout << full_to_guess << endl;
         Perms_add(fp_queries, full_to_guess);
-        int num_fp_correct = Perm_distance(full_to_guess, answer);
-        if (num_fp_correct == Perm_length(answer)) {
+        n_correct = Perm_distance(full_to_guess, answer);
+        if (n_correct == Perm_length(answer)) {
             break;
         }
-        poss = Perms_filter(poss, full_to_guess, num_fp_correct);
+        poss = Perms_filter(poss, full_to_guess, n_correct);
 
         cout << "Down to " << Perms_size(poss) << " remaining." << endl;
     }
@@ -351,24 +351,24 @@ void interactive_ayto_season()
         cout << "Truth booth: Is there a '" << pair_to_guess[1] << "' in position "
              << pair_to_guess[0] << " (indexed starting with 0)? [yes/no]" << endl;
         Perms_add(tb_queries, pair_to_guess);
-        string response;
-        cin >> response;
-        if (response[0] == 'y' || response[0] == 'Y') {
-            poss = Perms_filter_for_pair(poss, pair_to_guess, 1);
+        string user_response;
+        cin >> user_response;
+        if (user_response[0] == 'y' || user_response[0] == 'Y') {
+            poss = Perms_filter(poss, pair_to_guess, 1);
         } else {
-            poss = Perms_filter_for_pair(poss, pair_to_guess, 0);
+            poss = Perms_filter(poss, pair_to_guess, 0);
         }
 
         Perm full_to_guess = get_fullpairing(poss, fp_queries);
         cout << "Perfect matching: How many of the following are in the correct spot?" << endl;
         cout << Perm_tostring(full_to_guess) << endl;
-        int num_fp_correct;
-        cin >> num_fp_correct;
+        int n_correct;
+        cin >> n_correct;
         Perms_add(fp_queries, full_to_guess);
-        if (num_fp_correct == NUM_PAIRS) {
+        if (n_correct == NUM_PAIRS) {
             break;
         }
-        poss = Perms_filter(poss, full_to_guess, num_fp_correct);
+        poss = Perms_filter(poss, full_to_guess, n_correct);
 
         if (Perms_size(poss) == 0) {
             cout << "Error: That combination of responses is not possible." << endl
@@ -412,7 +412,7 @@ void usage(void)
     cout << "usage: ./ayto" << endl;
     cout << "\t[-a | -all]                - Run on all permutations" << endl;
     cout << "\t[[-f | -file] <file_name>] - Run on permutations in file" << endl;
-    // TODO: cout << "\t[-i]                       - Interactive, wait for response" << endl;
+    // TODO: cout << "\t[-i]                       - Interactive, wait for user_response" << endl;
 }
 
 int main(int argc, char **argv) {

@@ -31,33 +31,31 @@ void Perms_add(Perms p, const Perm to_add)
     p->push_back(to_add);
 }
 
-Perms Perms_filter(const Perms before, const Perm against, const int n)
+Perms Perms_filter(const Perms before, const Perm against, const int n_correct)
 {
     Perms after = Perms_init_empty();
 
-    for (Perms_citer it = before->begin(); it != before->end(); ++it) {
-        if (Perm_distance(*it, against) == n) {
-            after->push_back(*it);
+    if (Perms_size(before) > 0 && 
+        Perm_length(against) == Perm_length(Perms_get(before, 0))) {
+        // Filter for perfect matching matching
+        for (Perms_citer it = before->begin(); it != before->end(); ++it) {
+            if (Perm_distance(*it, against) == n_correct) {
+                after->push_back(*it);
+            }
+        }
+    } else if (Perm_length(against) == 2) { // Truth booth
+        int pos = against[0] - '0';
+        char c = against[1];
+
+        for (Perms_citer it = before->begin(); it != before->end(); ++it) {
+            if ((n_correct == 1 && (*it)[pos] == c)
+                    || (n_correct == 0 && (*it)[pos] != c)) {
+                after->push_back(*it);
+            }
         }
     }
 
-    return after;
-}
-
-Perms Perms_filter_for_pair(const Perms before, const Perm pair, const int is_match)
-{
-    assert(pair.size() == 2);
-    char c = pair[1];
-    int pos = pair[0] - '0';
-    Perms after = Perms_init_empty();
-
-    for (Perms_citer it = before->begin(); it != before->end(); ++it) {
-        if ((is_match && (*it)[pos] == c)
-                || (!is_match && (*it)[pos] != c)) {
-            after->push_back(*it);
-        }
-    }
-
+    Perms_destroy(before);
     return after;
 }
 

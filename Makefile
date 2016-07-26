@@ -18,4 +18,4 @@ $(DPNDS1).o: $(DPNDS1).cpp $(DPNDS1).h
 	$(CC) $(CFLAGS) -c $(DPNDS1).cpp
 
 clean:
-	$(RM) $(TARGET) *.o *~
+	$(RM) $(TARGET) *.exe *.exe.stackdump *.o *~
