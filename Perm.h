@@ -8,9 +8,11 @@
 #ifndef GUARD_PERM_H
 #define GUARD_PERM_H
 
+#include <algorithm>
 #include <iostream>
-#include <string>
+#include <fstream>
 #include <sstream>
+#include <string>
 #include <vector>
 
 typedef std::string Perm;          // Represent permutations with strings.
@@ -23,6 +25,7 @@ typedef std::vector<Perm>::const_iterator Perms_citer;
 
 Perms Perms_init_empty(void);
 Perms Perms_init_full(void);
+Perms Perms_init_from_file(std::string path);
 void Perms_destroy(Perms p);
 void Perms_add(Perms p, const Perm to_add);
 Perm Perms_get(const Perms p, const int i);
@@ -34,5 +37,6 @@ int Perm_distance(const Perm& p, const Perm& q);
 int Perm_length(const Perm& p);
 Perm Perm_from_chars(const char arr[], int len);
 std::string Perm_tostring(const Perm p);
+Perm Perm_fromstring(const std::string s);
 
 #endif

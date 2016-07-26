@@ -44,6 +44,21 @@ Perms Perms_filter(const Perms before, const Perm against, const int n)
     return after;
 }
 
+
+Perms Perms_init_from_file(std::string path)
+{
+    Perms perms = Perms_init_empty();
+    Perm line;
+    ifstream fin(path);
+
+    while (fin >> line) {
+        Perms_add(perms, line);
+    }
+
+    fin.close();
+    return perms;
+}
+
 bool is_Perm_in_Perms(const Perm needle, const Perms haystack)
 {
     return find(haystack->begin(), haystack->end(), needle) !=
@@ -52,7 +67,8 @@ bool is_Perm_in_Perms(const Perm needle, const Perms haystack)
 
 Perm Perms_get(const Perms p, const int i)
 {
-    if (i < 0 || i >= p->size()) {
+    int sz = p->size();
+    if (i < 0 || i >= sz) {
         return "";
     }
     return (*p)[i];
@@ -107,4 +123,9 @@ string Perm_tostring(const Perm p)
     builder << ")";
 
     return builder.str();
+}
+
+Perm Perm_fromstring(const string s)
+{
+    return (Perm) s;
 }
