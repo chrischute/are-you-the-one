@@ -66,6 +66,9 @@ Perms Perms_init_from_file(std::string path)
     ifstream fin(path);
 
     while (fin >> line) {
+        for (string::const_iterator it = line.begin(); it != line.end(); ++it) {
+            assert(*it >= '0' && *it <= '9');
+        }
         Perms_add(perms, line);
     }
 

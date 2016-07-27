@@ -30,7 +30,7 @@ using namespace std;
 
 typedef struct args Thread_args;
 struct args {
-    int _id;
+    int _id;                       // ID of thread taking these args.
     Perms _poss_answers;           // All permutations still possible to be the answer.
     Perms _poss_queries;           // The chunk of potential queries to evaluate.
     Perms _queries_made;           // All queries made so far.
@@ -125,7 +125,8 @@ Perm minimax(Perms poss, Perms queries_made)
     Perms chunks[NUM_PAIRS] = { NULL };
 
     if (Perms_size(poss) > PARTIAL_MINIMAX_THRESHOLD) {
-        cout << "Choosing best from pool at " << QUERY_POOL << endl;
+        cout << "Choosing best from pool of " << Perms_size(pool)
+             << " at " << QUERY_POOL << endl;
         Perms pool = Perms_init_from_file(QUERY_POOL);
 
         // Divide the possible queries into 10 chunks to evaluate.
