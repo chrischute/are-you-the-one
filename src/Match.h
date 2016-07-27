@@ -18,7 +18,7 @@ public:
     Match() : index(0), charAtIndex('0') { }
     Match(int i, char c) : index(i), charAtIndex(c) { }
     Match(int twoDigit) : index(twoDigit / 10), charAtIndex('0' + (twoDigit % 10)) {}
-    bool isIn(Perm& p) { return p[this->index] == this->charAtIndex; }
+    bool isContainedIn(Perm &p) { return p[this->index] == this->charAtIndex; }
     Perm toPerm() {
         const char perm[] = {
                 static_cast<char>('0' + index),

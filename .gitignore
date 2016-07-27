@@ -1,6 +1,7 @@
 .DS_Store
 *.o
-*.exe*
+*.exe
+*.exe.stackdump
 ayto
 .idea/
 CMakeLists.txt

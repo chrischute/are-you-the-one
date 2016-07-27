@@ -7,7 +7,7 @@
 SOURCE_DIR = src/
 TARGET     = ayto
 
-# Build from src, copy the executable up a level
+# Build from src, copy the executable up a level.
 all:
 	@cd $(SOURCE_DIR); make $(TARGET); cp $(TARGET) ../$(TARGET); make clean
 

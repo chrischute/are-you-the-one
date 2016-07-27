@@ -16,7 +16,7 @@ all:
 $(TARGET): $(TARGET).o $(DPNDS1).o $(DPNDS2).o $(DPNDS3).o
 	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).o $(DPNDS1).o $(DPNDS2).o $(DPNDS3).o
 
-$(TARGET).o: $(TARGET).cpp $(DPNDS1).h $(DPNDS2).h $(DPNDS3).h $(DPNDS4).h
+$(TARGET).o: $(TARGET).cpp $(TARGET).h $(DPNDS1).h $(DPNDS2).h $(DPNDS3).h $(DPNDS4).h
 	$(CC) $(CFLAGS) -c $(TARGET).cpp
 
 $(DPNDS1).o: $(DPNDS1).cpp $(DPNDS1).h $(DPNDS2).h $(DPNDS4).h

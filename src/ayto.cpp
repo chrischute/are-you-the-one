@@ -5,46 +5,241 @@
  * Simulates minimax query algorithm for MTV's Are You The One?
  */
 
-#include <algorithm>
-#include <cassert>
-#include <iostream>
-#include <map>
-#include <mutex>
-#include <cstring>
-#include <thread>
-#include <vector>
-#include "Perm.h"
-#include "Perms.h"
-#include "Match.h"
-#include "Matches.h"
+#include "ayto.h"
 
-#define NUM_CHUNKS (8)
-#define NUM_PAIRS (10)
-#define NUM_PAIRS_SQUARED (100)
-#define PARTIAL_MINIMAX_THRESHOLD (10000) // Start partial minimax when <= this # left.
-#define FULL_MINIMAX_THRESHOLD (314) // Only do full minimax when <= this # left.
-#define QUERY_POOL ("scripts/query_pool.txt")
-#define DIGITS ("0123456789")
-#define RAND_ANSWER ("9352741680")
-#define G1 ("0123456789")
-#define G2 ("4579108623")
+Perm getNextPerfectMatchingGuess(Perms *poss, Perms *queries_made)
+{
+    if (poss->size() == 1) {
+        return poss->sample();
+    }
+    Perm full_to_guess = DIGITS;
+    switch (queries_made->size()) {
+        case 0:
+            full_to_guess = DIGITS;
+            break;
+        case 1:
+            full_to_guess = GUESS;
+            break;
+        default:
+            full_to_guess = minimax(poss, queries_made);
+            break;
+    }
 
-using namespace std;
+    return full_to_guess;
+}
 
-typedef struct args Thread_args;
-struct args {
-    int _id;                       // ID of thread taking these args.
-    Perms* _poss_answers;          // All permutations still possible to be the answer.
-    Perms* _poss_queries;          // The chunk of potential queries to evaluate.
-    Perms* _queries_made;          // All queries made so far.
-    map<Perm, int>* _best_queries; // Where each thread will store it's best query.
-    mutex* _mutex;                 // Mutex for the shared _best_queries map.
-};
+Match getNextTruthBoothGuess(Perms *poss, Matches *queries_made)
+{
+    int *pair_count = new int[PERM_LENGTH * PERM_LENGTH]();
+    Match best_pair(0);
 
-inline int sq(int x) { return x * x; }
+    Match closest_match(-1, '-');
+    if (queries_made->size() > 0) {
+        for (Perms::const_iterator it = poss->begin(); it != poss->end(); ++it) {
+            for (int i = 0; i < PERM_LENGTH; ++i) {
+                int digit = (*it)[i] - '0';
+                pair_count[PERM_LENGTH * i + digit] += 1;
+            }
+        }
 
-// minimax_per_thread: run minimax on all permutations with id as first digit.
-void minimax_per_thread(Thread_args *args)
+        // Ideally a pairing occurs in 1/2 of all possible answers.
+        // The worst-case response is always the complement of the
+        // best-case response. We want to optimize the worst case, which
+        //  occurs when both yes/no cut the remaining solutions in half.
+        int ideal_count = poss->size() / 2;
+        int closest_dist = poss->size() + 1;
+        int nPairs = PERM_LENGTH * PERM_LENGTH;
+        for (int i = 0; i < nPairs; ++i) {
+            Match couple(i);
+            if (!queries_made->contains(couple) &&
+                abs(pair_count[i] - ideal_count) < closest_dist) {
+                closest_dist = abs(pair_count[i] - ideal_count);
+                closest_match = couple;
+            }
+        }
+        assert(closest_match.index >= 0);
+        best_pair = closest_match;
+    }
+
+    delete[] pair_count;
+    return best_pair;
+}
+
+bool isRunAllMode(int argc, char **argv)
+{
+    return argc == 2 &&
+           (strncmp(argv[1], "-all", 4) == 0
+            || strncmp(argv[1], "-a", 2) == 0);
+}
+
+bool isRunFileMode(int argc, char **argv)
+{
+    return argc == 3 &&
+           (strncmp(argv[1], "-file", 5) == 0
+            || strncmp(argv[1], "-f", 2) == 0);
+
+}
+
+bool isRunInteractiveMode(int argc, char **argv) {
+    return argc == 2 && strncmp(argv[1], "-i", 2) == 0;
+}
+
+int main(int argc, char **argv) {
+    if (isRunAllMode(argc, argv)) {
+        // Run on all 10! possible answers (warning: will take ~9 years).
+        Perm answer = DIGITS;
+        do {
+            runAyto(answer);
+        } while (next_permutation(answer.begin(), answer.end()));
+    } else if (isRunFileMode(argc, argv)) {
+        // Run on all answers in specified file at argv[2].
+        Perms* answers = new Perms();
+        answers->populateFromFile(argv[2]);
+        for (Perms::const_iterator it = answers->begin();
+             it != answers->end();
+             ++it) {
+            runAyto(*it);
+        }
+    } else if (isRunInteractiveMode(argc, argv)) {
+        // Let the user input feedback after each guess.
+        runAytoInteractive();
+    } else if (argc == 1) {
+        // Just run on a single answer, the dummy answer.
+        runAyto(DUMMY);
+    } else {
+        cout << "usage: ./ayto" << endl;
+        cout << "\t[-a | -all]                - Run on all permutations" << endl;
+        cout << "\t[[-f | -file] <file_name>] - Run on permutations in file" << endl;
+        cout << "\t[-i]                       - Interactive, wait for user_response" << endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+Perm minimax(Perms* poss, Perms* queries_made)
+{
+    Perm best_query = "";
+    int best_worst_case = poss->size();
+
+    // Spin up 10 threads to run minimax in parallel.
+    map<Perm, int> *best_queries = new map<Perm, int>();
+    mutex *best_queries_lock = new mutex();
+    vector<thread> thread_jobs;
+    vector<struct targs*> thread_args;
+    Perms* chunks[PERM_LENGTH] = { NULL };
+
+    if (poss->size() > START_PART_MM) {
+        Perms* pool = new Perms();
+        pool->populateFromFile(POOL_FILENAME);
+        cout << "Choosing best from pool of " << pool->size()
+             << " at " << POOL_FILENAME << endl;
+
+        // Divide the possible queries into 10 chunks to evaluate.
+        int chunk_size = pool->size() / PERM_LENGTH;
+        int chunks_with_extra = pool->size() % PERM_LENGTH;
+        for (int i = 0; i < PERM_LENGTH; ++i) {
+            chunks[i] = new Perms();
+            int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
+            Perms::iterator begin_chunk = pool->begin();
+            Perms::iterator end_chunk = begin_chunk + n_to_add;
+
+            Perms* chunk = new Perms(begin_chunk, end_chunk);
+            chunks[i] = chunk;
+        }
+
+        for (int id = 0; id < PERM_LENGTH; ++id) {
+            Thread_args *args = new Thread_args {
+                    ._id = id,
+                    ._poss_answers = poss,
+                    ._poss_queries = chunks[id],
+                    ._queries_made = queries_made,
+                    ._best_queries = best_queries,
+                    ._mutex = best_queries_lock
+            };
+            thread_args.push_back(args);
+            thread_jobs.push_back(thread(minimaxPerThread, args));
+        }
+    } else if (poss->size() > START_FULL_MM) {
+        cout << "Partial minimax with " << poss->size()
+             << " answers remaining." << endl;
+        // Divide the possible queries into 10 chunks to evaluate.
+        int chunk_size = poss->size() / PERM_LENGTH;
+        int chunks_with_extra = poss->size() % PERM_LENGTH;
+        for (int i = 0; i < PERM_LENGTH; ++i) {
+            int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
+            Perms::iterator begin_chunk = poss->begin();
+            Perms::iterator end_chunk = begin_chunk + n_to_add;
+
+            chunks[i] = new Perms(begin_chunk, end_chunk);
+        }
+
+        for (int id = 0; id < PERM_LENGTH; ++id) {
+            Thread_args *args = new Thread_args {
+                    ._id = id,
+                    ._poss_answers = poss,
+                    ._poss_queries = chunks[id],
+                    ._queries_made = queries_made,
+                    ._best_queries = best_queries,
+                    ._mutex = best_queries_lock
+            };
+            thread_args.push_back(args);
+            thread_jobs.push_back(thread(minimaxPerThread, args));
+        }
+    } else {
+        cout << "Full minimax with " << poss->size()
+             << " answers remaining." << endl;
+        for (int id = 0; id < PERM_LENGTH; ++id) {
+            Thread_args *args = new Thread_args {
+                    ._id = id,
+                    ._poss_answers = poss,
+                    ._poss_queries = NULL,
+                    ._queries_made = queries_made,
+                    ._best_queries = best_queries,
+                    ._mutex = best_queries_lock
+            };
+            thread_args.push_back(args);
+            thread_jobs.push_back(thread(minimaxPerThread, args));
+        }
+    }
+    // Wait for all threads to finish up.
+    for (vector<thread>::iterator it = thread_jobs.begin();
+         it != thread_jobs.end();
+         ++it) {
+        it->join();
+    }
+
+    // Find the best worst-case #remaining in candidates.
+    for (map<Perm, int>::const_iterator it = best_queries->begin();
+         it != best_queries->end();
+         ++it) {
+        Perm query = it->first;
+        int worst_case_num_remaining = it->second;
+
+        if (worst_case_num_remaining < best_worst_case) {
+            best_worst_case = worst_case_num_remaining;
+            best_query = query;
+        }
+    }
+
+    // Clean up allocated args, chunks, map, and mutex.
+    for (vector<Thread_args *>::iterator it = thread_args.begin();
+         it != thread_args.end();
+         ++it) {
+        delete *it;
+    }
+    for (int i = 0; i < PERM_LENGTH; ++i) {
+        if (chunks[i] != NULL) {
+            delete chunks[i];
+        }
+    }
+    delete best_queries;
+    delete best_queries_lock;
+
+    return best_query;
+}
+
+void minimaxPerThread(Thread_args *args)
 {
     int thread_id = args->_id;
     Perms *poss_answers = args->_poss_answers;
@@ -67,7 +262,7 @@ void minimax_per_thread(Thread_args *args)
         do {
             Perm query = first_digit + last_nine_digits;
             if (!queries_made->contains(query)) {
-                vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
+                vector<int> match_count(PERM_LENGTH + 1, 0); // Maps #hits to count
                 // Check how many possibilities would remain after guessing query
                 for (Perms::const_iterator it = poss_answers->begin();
                     it != poss_answers->end();
@@ -91,7 +286,7 @@ void minimax_per_thread(Thread_args *args)
             Perm query = *poss_query;
 
             if (!queries_made->contains(query)) {
-                vector<int> match_count(NUM_PAIRS + 1, 0); // Maps #hits to count
+                vector<int> match_count(PERM_LENGTH + 1, 0); // Maps #hits to count
                 // Check how many possibilities would remain after guessing query
                 for (Perms::const_iterator it = poss_answers->begin();
                      it != poss_answers->end();
@@ -117,194 +312,7 @@ void minimax_per_thread(Thread_args *args)
     return;
 }
 
-Perm minimax(Perms* poss, Perms* queries_made)
-{
-    Perm best_query = "";
-    int best_worst_case = poss->size();
-
-    // Spin up 10 threads to run minimax in parallel.
-    map<Perm, int> *best_queries = new map<Perm, int>();
-    mutex *best_queries_lock = new mutex();
-    vector<thread> thread_jobs;
-    vector<Thread_args *> thread_args;
-    Perms* chunks[NUM_PAIRS] = { NULL };
-
-    if (poss->size() > PARTIAL_MINIMAX_THRESHOLD) {
-        Perms* pool = new Perms();
-        pool->populateFromFile(QUERY_POOL);
-        cout << "Choosing best from pool of " << pool->size()
-             << " at " << QUERY_POOL << endl;
-
-        // Divide the possible queries into 10 chunks to evaluate.
-        int chunk_size = pool->size() / NUM_PAIRS;
-        int chunks_with_extra = pool->size() % NUM_PAIRS;
-        for (int i = 0; i < NUM_PAIRS; ++i) {
-            chunks[i] = new Perms();
-            int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
-            Perms::iterator begin_chunk = pool->begin();
-            Perms::iterator end_chunk = begin_chunk + n_to_add;
-
-            Perms* chunk = new Perms(begin_chunk, end_chunk);
-            chunks[i] = chunk;
-        }
-
-        for (int id = 0; id < NUM_PAIRS; ++id) {
-            Thread_args *args = new Thread_args {
-                    ._id = id,
-                    ._poss_answers = poss,
-                    ._poss_queries = chunks[id],
-                    ._queries_made = queries_made,
-                    ._best_queries = best_queries,
-                    ._mutex = best_queries_lock
-            };
-            thread_args.push_back(args);
-            thread_jobs.push_back(thread(minimax_per_thread, args));
-        }
-    } else if (poss->size() > FULL_MINIMAX_THRESHOLD) {
-        cout << "Partial minimax with " << poss->size()
-             << " answers remaining." << endl;
-        // Divide the possible queries into 10 chunks to evaluate.
-        int chunk_size = poss->size() / NUM_PAIRS;
-        int chunks_with_extra = poss->size() % NUM_PAIRS;
-        for (int i = 0; i < NUM_PAIRS; ++i) {
-            int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
-            Perms::iterator begin_chunk = poss->begin();
-            Perms::iterator end_chunk = begin_chunk + n_to_add;
-
-            chunks[i] = new Perms(begin_chunk, end_chunk);
-        }
-
-        for (int id = 0; id < NUM_PAIRS; ++id) {
-            Thread_args *args = new Thread_args {
-                    ._id = id,
-                    ._poss_answers = poss,
-                    ._poss_queries = chunks[id],
-                    ._queries_made = queries_made,
-                    ._best_queries = best_queries,
-                    ._mutex = best_queries_lock
-            };
-            thread_args.push_back(args);
-            thread_jobs.push_back(thread(minimax_per_thread, args));
-        }
-    } else {
-        cout << "Full minimax with " << poss->size()
-             << " answers remaining." << endl;
-        for (int id = 0; id < NUM_PAIRS; ++id) {
-            Thread_args *args = new Thread_args {
-                    ._id = id,
-                    ._poss_answers = poss,
-                    ._poss_queries = NULL,
-                    ._queries_made = queries_made,
-                    ._best_queries = best_queries,
-                    ._mutex = best_queries_lock
-            };
-            thread_args.push_back(args);
-            thread_jobs.push_back(thread(minimax_per_thread, args));
-        }
-    }
-    // Wait for all threads to finish up.
-    for (vector<thread>::iterator it = thread_jobs.begin();
-            it != thread_jobs.end();
-            ++it) {
-        it->join();
-    }
-
-    // Find the best worst-case #remaining in candidates.
-    for (map<Perm, int>::const_iterator it = best_queries->begin();
-            it != best_queries->end();
-            ++it) {
-        Perm query = it->first;
-        int worst_case_num_remaining = it->second;
-
-        if (worst_case_num_remaining < best_worst_case) {
-            best_worst_case = worst_case_num_remaining;
-            best_query = query;
-        }
-    }
-
-    // Clean up allocated args, chunks, map, and mutex.
-    for (vector<Thread_args *>::iterator it = thread_args.begin();
-            it != thread_args.end();
-            ++it) {
-        delete *it;
-    }
-    for (int i = 0; i < NUM_PAIRS; ++i) {
-        if (chunks[i] != NULL) {
-            delete chunks[i];
-        }
-    }
-    delete best_queries;
-    delete best_queries_lock;
-
-    return best_query;
-}
-
-// Converts 2-digit index to permutation.
-Perm i_2digit_to_Perm(int i)
-{
-    const char p[] = {
-            static_cast<char>('0' + (i / 10)),
-            static_cast<char>('0' + (i % 10))
-    };
-
-    return string(p, 2);
-}
-
-Match get_truthbooth(Perms* poss, Matches* queries_made)
-{
-    int *pair_count = new int[NUM_PAIRS_SQUARED]();
-    Match best_pair(0);
-
-    Match closest_match(-1, '-');
-    if (queries_made->size() > 0) {
-        for (Perms::const_iterator it = poss->begin(); it != poss->end(); ++it) {
-            for (int i = 0; i < NUM_PAIRS; ++i) {
-                int digit = (*it)[i] - '0';
-                pair_count[NUM_PAIRS * i + digit] += 1;
-            }
-        }
-
-        // Ideally a pairing occurs in 1/2 of all possible answers
-        int ideal_count = poss->size() / 2;
-        int closest_dist = poss->size() + 1;
-        for (int i = 0; i < NUM_PAIRS_SQUARED; ++i) {
-            Match couple(i);
-            if (!queries_made->contains(couple) &&
-                    abs(pair_count[i] - ideal_count) < closest_dist) {
-                closest_dist = abs(pair_count[i] - ideal_count);
-                closest_match = couple;
-            }
-        }
-        assert(closest_match.index >= 0);
-        best_pair = closest_match;
-    }
-
-    delete[] pair_count;
-    return best_pair;
-}
-
-Perm get_fullpairing(Perms* poss, Perms* queries_made)
-{
-    if (poss->size() == 1) {
-        return poss->sample();
-    }
-    Perm full_to_guess = DIGITS;
-    switch (queries_made->size()) {
-        case 0:
-            full_to_guess = DIGITS;
-            break;
-        case 1:
-            full_to_guess = G2;
-            break;
-        default:
-            full_to_guess = minimax(poss, queries_made);
-            break;
-    }
-
-    return full_to_guess;
-}
-
-void simulate_ayto_season(Perm answer)
+void runAyto(Perm answer)
 {
     Perms* poss = new Perms(); // Remaining possibilities for answer.
     Matches* tb_queries = new Matches(); // Queries submitted in truth booth.
@@ -314,16 +322,12 @@ void simulate_ayto_season(Perm answer)
     poss->populateAll();
     while (true) {
         cout << "Round " << (tb_queries->size() + 1) << endl;
-        //cout << "Truth booth... ";
-        Match pair_to_guess = get_truthbooth(poss, tb_queries);
-        //cout << pair_to_guess << endl;
+        Match pair_to_guess = getNextTruthBoothGuess(poss, tb_queries);
         tb_queries->add(pair_to_guess);
-        int isPairCorrect = pair_to_guess.isIn(answer);
+        int isPairCorrect = pair_to_guess.isContainedIn(answer);
         poss->filter(pair_to_guess, isPairCorrect);
 
-        //cout << "Full pairing... " << flush;
-        Perm full_to_guess = get_fullpairing(poss, pm_queries);
-        //cout << full_to_guess << endl;
+        Perm full_to_guess = getNextPerfectMatchingGuess(poss, pm_queries);
         pm_queries->add(full_to_guess);
         int n_correct = numInCommon(full_to_guess, answer);
         if (n_correct == answer.size()) {
@@ -344,7 +348,7 @@ void simulate_ayto_season(Perm answer)
     delete poss;
 }
 
-void interactive_ayto_season()
+void runAytoInteractive()
 {
     Perms* poss = new Perms(); // Remaining possibilities for answer.
     Matches* tb_queries = new Matches(); // Queries submitted in truth booth.
@@ -356,9 +360,10 @@ void interactive_ayto_season()
     while (true) {
         cout << "Round " << (tb_queries->size() + 1) << endl;
 
-        Match pair_to_guess = get_truthbooth(poss, tb_queries);
-        cout << "Truth booth: Is there a '" << pair_to_guess.charAtIndex << "' in position "
-             << pair_to_guess.index << " (indexed starting with 0)? [yes/no]" << endl;
+        Match pair_to_guess = getNextTruthBoothGuess(poss, tb_queries);
+        cout << "Truth booth: Is there a '" << pair_to_guess.charAtIndex
+             << "' in position " << pair_to_guess.index
+             << " (indexed starting with 0)? [yes/no]" << endl;
         tb_queries->add(pair_to_guess);
         string user_response;
         cin >> user_response;
@@ -368,13 +373,14 @@ void interactive_ayto_season()
             poss->filter(pair_to_guess, 0);
         }
 
-        Perm full_to_guess = get_fullpairing(poss, pm_queries);
-        cout << "Perfect matching: How many of the following are in the correct spot?" << endl;
-        cout << getPrintablePerm(full_to_guess) << endl;
+        Perm full_to_guess = getNextPerfectMatchingGuess(poss, pm_queries);
+        cout << "Perfect matching: How many of the following "
+             << "are in the correct spot?" << endl
+             << getPrintablePerm(full_to_guess) << endl;
         int n_correct;
         cin >> n_correct;
         pm_queries->add(full_to_guess);
-        if (n_correct == NUM_PAIRS) {
+        if (n_correct == PERM_LENGTH) {
             break;
         }
         poss->filter(full_to_guess, n_correct);
@@ -395,61 +401,4 @@ void interactive_ayto_season()
     }
 
     delete poss;
-}
-
-bool is_runall(int argc, char **argv)
-{
-    return argc == 2 &&
-        (strncmp(argv[1], "-all", 4) == 0
-            || strncmp(argv[1], "-a", 2) == 0);
-}
-
-bool is_runfile(int argc, char **argv)
-{
-    return argc == 3 &&
-            (strncmp(argv[1], "-file", 5) == 0
-                || strncmp(argv[1], "-f", 2) == 0);
-
-}
-
-bool is_interactive_mode(int argc, char **argv) {
-    return argc == 2 && strncmp(argv[1], "-i", 2) == 0;
-}
-
-void usage(void)
-{
-    cout << "usage: ./ayto" << endl;
-    cout << "\t[-a | -all]                - Run on all permutations" << endl;
-    cout << "\t[[-f | -file] <file_name>] - Run on permutations in file" << endl;
-    // TODO: cout << "\t[-i]                       - Interactive, wait for user_response" << endl;
-}
-
-int main(int argc, char **argv) {
-    Perm answer = RAND_ANSWER;       // The hidden matching.
-
-    if (is_runall(argc, argv)) {
-        // Run on all 10! hidden matchings.
-        answer = DIGITS;
-        do {
-            simulate_ayto_season(answer);
-        } while (next_permutation(answer.begin(), answer.end()));
-    } else if (is_runfile(argc, argv)) {
-        Perms* answers = new Perms();
-        answers->populateFromFile(argv[2]);
-        for (Perms::const_iterator it = answers->begin();
-                it != answers->end();
-                ++it) {
-            simulate_ayto_season(*it);
-        }
-    } else if (is_interactive_mode(argc, argv)) {
-        interactive_ayto_season();
-    } else if (argc == 1) {
-        // Just run on a single hidden matching.
-        simulate_ayto_season(answer);
-    } else {
-        usage();
-        return 1;
-    }
-
-    return 0;
 }

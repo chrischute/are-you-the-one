@@ -1,4 +1,8 @@
 #!/usr/bin/python
+# get_random_perms.py
+# Christopher Chute
+#
+# Generate random permutations (to stdout) for reading by ayto.cpp.
 
 from random import shuffle
 from sys import argv
