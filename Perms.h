@@ -12,9 +12,8 @@
 #include <fstream>
 #include <string>
 #include <vector>
-
-// Perm: Permutation represented as a string permutation of 0123456789.
-typedef std::string Perm;
+#include "Perm.h"
+#include "Match.h"
 
 class Perms {
 private:
@@ -27,6 +26,8 @@ public:
 
     // Perms(): Initialize empty set of permutations.
     Perms();
+    // Perms(iterator, iterator): Initialize a copy from another set of permutations.
+    Perms(iterator begin, iterator end);
     // ~Perms: Destroy all associated data.
     ~Perms();
 
@@ -42,6 +43,8 @@ public:
     void filter(Perm&, int);
     // filter: filter for only that have character m.second at index m.first.
     void filter(Match& m, bool isMatch);
+    // get: get the element at index i, not checking for data bounds.
+    Match& get(int i);
     // populateAll(): Fills with all permutations of the digits 0 through 9.
     void populateAll();
     // populateFromFile(ifstream): Fills with all permutations in the file stream.

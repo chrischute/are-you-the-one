@@ -16,6 +16,11 @@ Perms::Perms() {
     data = new vector<Perm>();
 }
 
+// Perms(Perms::iterator begin, Perms::iterator end): init from vector
+Perms::Perms(Perms::iterator begin, Perms::iterator end) {
+    data = new vector<Perm>(begin, end);
+}
+
 // ~Perms: Destroy all associated data.
 Perms::~Perms() {
     delete data;
@@ -30,6 +35,7 @@ void Perms::add(Perm& p) {
 Perms::iterator Perms::begin() {
     return this->data->begin();
 }
+
 // contains: true if and only if this contains specified permutation.
 bool Perms::contains(Perm& p) {
     return find(this->begin(), this->end(), p) != this->end();
@@ -38,21 +44,6 @@ bool Perms::contains(Perm& p) {
 // end: get the iterator one past the last element of this set of permutations.
 Perms::iterator Perms::end() {
     return this->data->end();
-}
-
-// numInCommon(Perm, Perm): Number of positions where p1 is same as p2.
-int numInCommon(const Perm& p1, const Perm& p2) {
-    int l1 = p1.size();
-    int l2 = p2.size();
-    int score = 0;
-
-    for (int i = 0; i < l1 && i < l2; ++i) {
-        if (p1[i] == p2[i]) {
-            ++score;
-        }
-    }
-
-    return score;
 }
 
 // filter: filter for only permutations with n matches in common with p.
@@ -78,6 +69,10 @@ void Perms::filter(Match& m, bool isMatch) {
 
     delete this->data;
     this->data = newData;
+}
+
+Match& Perms::get(int i) {
+    return this->data->at(i);
 }
 
 // populateAll(int): Fills with all permutations of the provided length.
