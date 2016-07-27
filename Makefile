@@ -1,30 +1,17 @@
-# Makefile for Are You The One? simulator
+# Makefile
 # Christopher Chute
 
-CC     = g++
-CFLAGS = -std=c++11 -Wall
-TARGET = ayto
-DPNDS1 = Perms
-DPNDS2 = Perm
-DPNDS3 = Matches
-DPNDS4 = Match
+# Top-level makefile for Are You The One? simulator.
+# Should be silent, let src/Makefile do all the printing.
 
-all: $(TARGET)
+SOURCE_DIR = src/
+TARGET     = ayto
 
-$(TARGET): $(TARGET).o $(DPNDS1).o $(DPNDS2).o $(DPNDS3).o
-	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).o $(DPNDS1).o $(DPNDS2).o $(DPNDS3).o
+# Build from src, copy the executable up a level
+all:
+	@cd $(SOURCE_DIR); make $(TARGET); cp $(TARGET) ../$(TARGET); make clean
 
-$(TARGET).o: $(TARGET).cpp $(DPNDS1).h $(DPNDS2).h $(DPNDS3).h $(DPNDS4).h
-	$(CC) $(CFLAGS) -c $(TARGET).cpp
-
-$(DPNDS1).o: $(DPNDS1).cpp $(DPNDS1).h $(DPNDS2).h $(DPNDS4).h
-	$(CC) $(CFLAGS) -c $(DPNDS1).cpp
-
-$(DPDNS2).o: $(DPNDS2).cpp $(DPNDS2).h
-	$(CC) $(CFLAGS) -c $(DPNDS2).cpp
-
-$(DPNDS3).o: $(DPNDS3).cpp $(DPNDS3).h $(DPNDS4).h
-	$(CC) $(CFLAGS) -c $(DPNDS3).cpp
-
+# Remove all binaries and object files.
 clean:
-	$(RM) $(TARGET) *.exe *.exe.stackdump *.o *~
+	@$(RM) $(TARGET) *.exe *.exe.stackdump *.o *~
+	@cd $(SOURCE_DIR); make clean

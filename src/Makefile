@@ -9,7 +9,9 @@ DPNDS2 = Perm
 DPNDS3 = Matches
 DPNDS4 = Match
 
-all: $(TARGET)
+all:
+	@echo "Error: Call 'make' from parent directory, above src."
+	@echo "Nothing done."
 
 $(TARGET): $(TARGET).o $(DPNDS1).o $(DPNDS2).o $(DPNDS3).o
 	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).o $(DPNDS1).o $(DPNDS2).o $(DPNDS3).o

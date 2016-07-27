@@ -23,7 +23,7 @@
 #define NUM_PAIRS_SQUARED (100)
 #define PARTIAL_MINIMAX_THRESHOLD (10000) // Start partial minimax when <= this # left.
 #define FULL_MINIMAX_THRESHOLD (314) // Only do full minimax when <= this # left.
-#define QUERY_POOL ("../test/query_pool.txt")
+#define QUERY_POOL ("scripts/query_pool.txt")
 #define DIGITS ("0123456789")
 #define RAND_ANSWER ("9352741680")
 #define G1 ("0123456789")
