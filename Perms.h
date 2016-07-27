@@ -9,24 +9,26 @@
 #define GUARD_PERMS_H
 
 #include <algorithm>
-#include <ifstream>
+#include <fstream>
 #include <string>
 #include <vector>
 
+// Perm: Permutation represented as a string permutation of 0123456789.
 typedef std::string Perm;
+// Match: For example, <3, '9'> indicates perm[3] == '9'.
+typedef std::pair<int, char> Match;
 
 class Perms {
 private:
     std::vector<Perm>* data;
 public:
-    // Perms::iterator: Iterates over the data.
+    // Perms::iterator: Iterates over the data in set of permutations.
     typedef std::vector<Perm>::iterator iterator;
+    // Perms::const_iterator: Iterates over data vector, read only.
     typedef std::vector<Perm>::const_iterator const_iterator;
 
     // Perms(): Initialize empty set of permutations.
     Perms();
-    // Perms(Perms&): Copy from another set of permutations.
-    Perms(const Perms&);
     // ~Perms: Destroy all associated data.
     ~Perms();
 
@@ -40,14 +42,16 @@ public:
     iterator end();
     // filter: filter for only permutations with n_correct matches.
     void filter(Perm&, int);
+    // filter: filter for only that have character m.second at index m.first.
+    void filter(Match& m, bool isMatch);
     // populateAll(): Fills with all permutations of the digits 0 through 9.
     void populateAll();
     // populateFromFile(ifstream): Fills with all permutations in the file stream.
     // Format: File should contain a single 10-digit number per line, nothing else.
-    void populateFromFile(ifstream);
+    void populateFromFile(std::string filename);
     // sample: peek at some element in the permutation set.
     Perm& sample();
     // size: get the number of elements in the permutation set.
     std::vector<Perm>::size_type size();
-}
+};
 #endif

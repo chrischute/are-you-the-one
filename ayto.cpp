@@ -125,9 +125,9 @@ Perm minimax(Perms poss, Perms queries_made)
     Perms chunks[NUM_PAIRS] = { NULL };
 
     if (Perms_size(poss) > PARTIAL_MINIMAX_THRESHOLD) {
+        Perms pool = Perms_init_from_file(QUERY_POOL);
         cout << "Choosing best from pool of " << Perms_size(pool)
              << " at " << QUERY_POOL << endl;
-        Perms pool = Perms_init_from_file(QUERY_POOL);
 
         // Divide the possible queries into 10 chunks to evaluate.
         int chunk_size = Perms_size(pool) / NUM_PAIRS;
