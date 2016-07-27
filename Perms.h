@@ -15,8 +15,6 @@
 
 // Perm: Permutation represented as a string permutation of 0123456789.
 typedef std::string Perm;
-// Match: For example, <3, '9'> indicates perm[3] == '9'.
-typedef std::pair<int, char> Match;
 
 class Perms {
 private:

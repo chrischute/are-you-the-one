@@ -5,9 +5,9 @@
  * Data structure and operations for permutations.
  */
 
+#include "Perm.h"
+#include "Match.h"
 #include "Perms.h"
-
-#include <iostream>
 
 using namespace std;
 

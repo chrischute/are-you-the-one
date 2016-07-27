@@ -4,7 +4,7 @@
 CC     = g++
 CFLAGS = -std=c++11 -Wall
 TARGET = ayto
-DPNDS1 = Perm
+DPNDS1 = Perms
 
 all: $(TARGET)
 
