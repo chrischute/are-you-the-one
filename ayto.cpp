@@ -14,6 +14,9 @@
 #include <thread>
 #include <vector>
 #include "Perm.h"
+#include "Perms.h"
+#include "Match.h"
+#include "Matches.h"
 
 #define NUM_CHUNKS (8)
 #define NUM_PAIRS (10)
@@ -247,10 +250,10 @@ Perm i_2digit_to_Perm(int i)
     return string(p, 2);
 }
 
-Match get_truthbooth(Perms* poss, Perms* queries_made)
+Match get_truthbooth(Perms* poss, Matches* queries_made)
 {
     int *pair_count = new int[NUM_PAIRS_SQUARED]();
-    Perm best_pair = "00";
+    Match best_pair(0);
 
     Match closest_match(-1, '-');
     if (queries_made->size() > 0) {
@@ -308,6 +311,7 @@ void simulate_ayto_season(Perm answer)
     Perms* pm_queries = new Perms(); // Queries submitted in perf. match.
 
     cout << "Answer " << answer << endl;
+    poss->populateAll();
     while (true) {
         cout << "Round " << (tb_queries->size() + 1) << endl;
         //cout << "Truth booth... ";
@@ -318,11 +322,11 @@ void simulate_ayto_season(Perm answer)
         poss->filter(pair_to_guess, isPairCorrect);
 
         //cout << "Full pairing... " << flush;
-        Perm full_to_guess = get_fullpairing(poss, fp_queries);
+        Perm full_to_guess = get_fullpairing(poss, pm_queries);
         //cout << full_to_guess << endl;
         pm_queries->add(full_to_guess);
-        n_correct = numInCommon(full_to_guess, answer);
-        if (n_correct = answer.size()) {
+        int n_correct = numInCommon(full_to_guess, answer);
+        if (n_correct == answer.size()) {
             break;
         }
         poss->filter(full_to_guess, n_correct);
@@ -346,13 +350,15 @@ void interactive_ayto_season()
     Matches* tb_queries = new Matches(); // Queries submitted in truth booth.
     Perms* pm_queries = new Perms(); // Queries submitted in perf. match.
 
+
     cout << "Interactive Mode" << endl;
+    poss->populateAll();
     while (true) {
         cout << "Round " << (tb_queries->size() + 1) << endl;
 
         Match pair_to_guess = get_truthbooth(poss, tb_queries);
-        cout << "Truth booth: Is there a '" << pair_to_guess[1] << "' in position "
-             << pair_to_guess[0] << " (indexed starting with 0)? [yes/no]" << endl;
+        cout << "Truth booth: Is there a '" << pair_to_guess.charAtIndex << "' in position "
+             << pair_to_guess.index << " (indexed starting with 0)? [yes/no]" << endl;
         tb_queries->add(pair_to_guess);
         string user_response;
         cin >> user_response;
@@ -362,12 +368,12 @@ void interactive_ayto_season()
             poss->filter(pair_to_guess, 0);
         }
 
-        Perm full_to_guess = get_fullpairing(poss, fp_queries);
+        Perm full_to_guess = get_fullpairing(poss, pm_queries);
         cout << "Perfect matching: How many of the following are in the correct spot?" << endl;
         cout << getPrintablePerm(full_to_guess) << endl;
         int n_correct;
         cin >> n_correct;
-        fp_queries->add(full_to_guess);
+        pm_queries->add(full_to_guess);
         if (n_correct == NUM_PAIRS) {
             break;
         }
@@ -384,7 +390,7 @@ void interactive_ayto_season()
     cout << "Results:" << endl;
     for (int i = 0; i < tb_queries->size(); ++i) {
         cout << "[Round " << (i + 1) << "] "
-             << getPrintablePerm((tb_queries->get(i).toPerm)) << ", "
+             << getPrintablePerm((tb_queries->get(i).toPerm())) << ", "
              << getPrintablePerm((pm_queries->get(i))) << "." << endl;
     }
 

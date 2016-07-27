@@ -5,13 +5,13 @@
  * Data structure and operations for single matches.
  */
 
-using namespace std;
-
 #include "Matches.h"
+using namespace std;
 
 Matches::Matches() {
     this->data = new vector<Match>();
 }
+
 Matches::~Matches() {
     delete this->data;
 }
@@ -20,7 +20,7 @@ void Matches::add(Match& m) {
     this->data->push_back(m);
 }
 
-bool Matches::contains(Match& m) {
+bool Matches::contains(const Match& m) {
     return find(this->data->begin(), this->data->end(), m)
            != this->data->end();
 }

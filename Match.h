@@ -17,13 +17,18 @@ public:
     char charAtIndex;
     Match() : index(0), charAtIndex('0') { }
     Match(int i, char c) : index(i), charAtIndex(c) { }
-    int isIn(Perm& p) { return p[this->index] == this->charAtIndex ? 1 : 0; }
+    Match(int twoDigit) : index(twoDigit / 10), charAtIndex('0' + (twoDigit % 10)) {}
+    bool isIn(Perm& p) { return p[this->index] == this->charAtIndex; }
     Perm toPerm() {
         const char perm[] = {
                 static_cast<char>('0' + index),
                 charAtIndex
         };
-        return string(perm, 2);
+        return std::string(perm, 2);
+    }
+    bool operator==(Match const& that) {
+        return this->index == that.index &&
+               this->charAtIndex == that.charAtIndex;
     }
 };
 #endif

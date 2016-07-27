@@ -44,7 +44,7 @@ public:
     // filter: filter for only that have character m.second at index m.first.
     void filter(Match& m, bool isMatch);
     // get: get the element at index i, not checking for data bounds.
-    Match& get(int i);
+    Perm& get(int i);
     // populateAll(): Fills with all permutations of the digits 0 through 9.
     void populateAll();
     // populateFromFile(ifstream): Fills with all permutations in the file stream.

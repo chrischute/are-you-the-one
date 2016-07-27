@@ -5,8 +5,6 @@
  * Data structure and operations for permutations.
  */
 
-#include "Perm.h"
-#include "Match.h"
 #include "Perms.h"
 
 using namespace std;
@@ -62,7 +60,7 @@ void Perms::filter(Perm& p, int n) {
 void Perms::filter(Match& m, bool isMatch) {
     vector<Perm>* newData = new vector<Perm>();
     for (Perms::iterator it = this->begin(); it != this->end(); ++it) {
-        if (isMatch == ((*it)[m.first] == m.second)) {
+        if (isMatch == ((*it)[m.index] == m.charAtIndex)) {
             newData->push_back(*it);
         }
     }
@@ -71,7 +69,7 @@ void Perms::filter(Match& m, bool isMatch) {
     this->data = newData;
 }
 
-Match& Perms::get(int i) {
+Perm& Perms::get(int i) {
     return this->data->at(i);
 }
 

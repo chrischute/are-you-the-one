@@ -26,7 +26,7 @@ string getPrintablePerm(const Perm& p) {
     stringstream builder;
 
     builder << "(";
-    for (Perm_citer i = p.begin(); i != p.end(); i++) {
+    for (Perm::const_iterator i = p.begin(); i != p.end(); i++) {
         builder << *i;
         if (i != p.end() - 1)
             builder << ", ";

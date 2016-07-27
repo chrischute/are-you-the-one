@@ -14,13 +14,13 @@
 
 class Matches {
 private:
-    vector<Match>* data;
+    std::vector<Match>* data;
 public:
     Matches();
     ~Matches();
 
-    void add(Match);
-    bool contains(Match);
+    void add(Match&);
+    bool contains(const Match&);
     Match& get(int i);
     std::vector<Match>::size_type size();
 };

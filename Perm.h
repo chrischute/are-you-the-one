@@ -16,6 +16,7 @@ typedef std::string Perm;
 
 // numInCommon(Perm, Perm): Number of positions where p1 is same as p2.
 int numInCommon(const Perm& p1, const Perm& p2);
+
 // getPrintable(const Perm& p): get a nicely printable sequence rep.
 std::string getPrintablePerm(const Perm& p);
 
