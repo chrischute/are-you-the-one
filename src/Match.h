@@ -17,7 +17,6 @@ public:
     char charAtIndex;
     Match() : index(0), charAtIndex('0') { }
     Match(int i, char c) : index(i), charAtIndex(c) { }
-    Match(int twoDigit) : index(twoDigit / 10), charAtIndex('0' + (twoDigit % 10)) {}
     bool isContainedIn(Perm &p) { return p[this->index] == this->charAtIndex; }
     Perm toPerm() {
         const char perm[] = {
@@ -29,6 +28,10 @@ public:
     bool operator==(Match const& that) {
         return this->index == that.index &&
                this->charAtIndex == that.charAtIndex;
+    }
+    bool operator<(Match const& that) const {
+        return 10 * this->index + (this->charAtIndex - '0') <
+               10 * that.index + (that.charAtIndex - '0');
     }
 };
 #endif

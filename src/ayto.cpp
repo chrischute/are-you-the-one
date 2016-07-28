@@ -7,62 +7,68 @@
 
 #include "ayto.h"
 
-Perm getNextPerfectMatchingGuess(Perms *poss, Perms *queries_made)
+Perm getNextPerfectMatchingGuess(Perms *poss, Perms *guessesAlreadyMade)
 {
+    Perm nextGuess;
+
     if (poss->size() == 1) {
-        return poss->sample();
-    }
-    Perm full_to_guess = DIGITS;
-    switch (queries_made->size()) {
-        case 0:
-            full_to_guess = DIGITS;
-            break;
-        case 1:
-            full_to_guess = GUESS;
-            break;
-        default:
-            full_to_guess = minimax(poss, queries_made);
-            break;
+        nextGuess = poss->get(0);
+    } else {
+        switch (guessesAlreadyMade->size()) {
+            case 0:
+                nextGuess = DIGITS;
+                break;
+            case 1:
+                nextGuess = GUESS;
+                break;
+            default:
+                nextGuess = minimax(poss, guessesAlreadyMade);
+                break;
+        }
     }
 
-    return full_to_guess;
+    return nextGuess;
 }
 
-Match getNextTruthBoothGuess(Perms *poss, Matches *queries_made)
+Match getNextTruthBoothGuess(Perms *poss, Matches *guessesAlreadyMade)
 {
-    int *pair_count = new int[PERM_LENGTH * PERM_LENGTH]();
-    Match best_pair(0);
+    Match nextGuess(-1, '_');
+    map<Match, int> numOccurrencesOfMatch;
 
-    Match closest_match(-1, '-');
-    if (queries_made->size() > 0) {
-        for (Perms::const_iterator it = poss->begin(); it != poss->end(); ++it) {
-            for (int i = 0; i < PERM_LENGTH; ++i) {
-                int digit = (*it)[i] - '0';
-                pair_count[PERM_LENGTH * i + digit] += 1;
-            }
-        }
-
-        // Ideally a pairing occurs in 1/2 of all possible answers.
-        // The worst-case response is always the complement of the
-        // best-case response. We want to optimize the worst case, which
-        //  occurs when both yes/no cut the remaining solutions in half.
-        int ideal_count = poss->size() / 2;
-        int closest_dist = poss->size() + 1;
-        int nPairs = PERM_LENGTH * PERM_LENGTH;
-        for (int i = 0; i < nPairs; ++i) {
-            Match couple(i);
-            if (!queries_made->contains(couple) &&
-                abs(pair_count[i] - ideal_count) < closest_dist) {
-                closest_dist = abs(pair_count[i] - ideal_count);
-                closest_match = couple;
-            }
-        }
-        assert(closest_match.index >= 0);
-        best_pair = closest_match;
+    if (guessesAlreadyMade->size() == 0) {
+        return Match(0, '0');
     }
 
-    delete[] pair_count;
-    return best_pair;
+    // Count the number of occurrences in possible answers of each match.
+    for (Perms::const_iterator iterPerm = poss->begin();
+         iterPerm != poss->end();
+         ++iterPerm) {
+        Perm::const_iterator firstIterChar = iterPerm->begin();
+        for (Perm::const_iterator iterChar = iterPerm->begin();
+            iterChar != iterPerm->end();
+            ++iterChar) {
+            ++numOccurrencesOfMatch[Match(iterChar - firstIterChar, *iterChar)];
+        }
+    }
+
+    // Ideally a pairing occurs in 1/2 of all possible answers.
+    // The worst-case response is always the complement of the
+    // best-case response. We want to optimize the worst case, which
+    //  occurs when both yes/no cut the remaining solutions in half.
+    int optimalNumOccurrences = poss->size() / 2;
+    int closestNumOccurrences = -1;
+
+    for (map<Match, int>::const_iterator it = numOccurrencesOfMatch.begin();
+        it != numOccurrencesOfMatch.end();
+        ++it) {
+        if (abs(optimalNumOccurrences - it->second) <
+                abs(optimalNumOccurrences - closestNumOccurrences)) {
+            nextGuess = it->first;
+            closestNumOccurrences = it->second;
+        }
+    }
+
+    return nextGuess;
 }
 
 bool isRunAllMode(int argc, char **argv)
