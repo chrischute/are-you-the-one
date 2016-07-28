@@ -7,6 +7,42 @@
 
 #include "ayto.h"
 
+int main(int argc, char **argv) {
+    //bool isVerbose = true;      // TODO: Add -v flag for verbose setting.
+    //bool isInteractive = false; // TODO: Clean up the switch for interactive vs. regular.
+
+    if (isRunAllMode(argc, argv)) {
+        // Run on all 10! possible answers (warning: will take ~9 years).
+        Perm answer = DIGITS;
+        do {
+            runAyto(answer);
+        } while (next_permutation(answer.begin(), answer.end()));
+    } else if (isRunFileMode(argc, argv)) {
+        // Run on all answers in specified file at argv[2].
+        Perms* answers = new Perms();
+        answers->populateFromFile(argv[2]);
+        for (Perms::const_iterator it = answers->begin();
+             it != answers->end();
+             ++it) {
+            runAyto(*it);
+        }
+    } else if (isRunInteractiveMode(argc, argv)) {
+        // Let the user input feedback after each guess.
+        runAytoInteractive();
+    } else if (argc == 1) {
+        // Just run on a single answer, the dummy answer.
+        runAyto(DUMMY);
+    } else {
+        cout << "usage: ./ayto" << endl;
+        cout << "\t[-a | -all]                - Run on all permutations" << endl;
+        cout << "\t[[-f | -file] <file_name>] - Run on permutations in file" << endl;
+        cout << "\t[-i]                       - Interactive, wait for user_response" << endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
 Perm getNextPerfectMatchingGuess(Perms *poss, Perms *guessesAlreadyMade)
 {
     Perm nextGuess;
@@ -35,7 +71,8 @@ Match getNextTruthBoothGuess(Perms *poss, Matches *guessesAlreadyMade)
     Match nextGuess(-1, '_');
     map<Match, int> numOccurrencesOfMatch;
 
-    if (guessesAlreadyMade->size() == 0) {
+    if (guessesAlreadyMade->size() == 0 ||
+            poss->size() == 1) {
         return Match(0, '0');
     }
 
@@ -56,7 +93,7 @@ Match getNextTruthBoothGuess(Perms *poss, Matches *guessesAlreadyMade)
     // best-case response. We want to optimize the worst case, which
     //  occurs when both yes/no cut the remaining solutions in half.
     int optimalNumOccurrences = poss->size() / 2;
-    int closestNumOccurrences = -1;
+    int closestNumOccurrences = poss->size() + 1;
 
     for (map<Match, int>::const_iterator it = numOccurrencesOfMatch.begin();
         it != numOccurrencesOfMatch.end();
@@ -88,39 +125,6 @@ bool isRunFileMode(int argc, char **argv)
 
 bool isRunInteractiveMode(int argc, char **argv) {
     return argc == 2 && strncmp(argv[1], "-i", 2) == 0;
-}
-
-int main(int argc, char **argv) {
-    if (isRunAllMode(argc, argv)) {
-        // Run on all 10! possible answers (warning: will take ~9 years).
-        Perm answer = DIGITS;
-        do {
-            runAyto(answer);
-        } while (next_permutation(answer.begin(), answer.end()));
-    } else if (isRunFileMode(argc, argv)) {
-        // Run on all answers in specified file at argv[2].
-        Perms* answers = new Perms();
-        answers->populateFromFile(argv[2]);
-        for (Perms::const_iterator it = answers->begin();
-             it != answers->end();
-             ++it) {
-            runAyto(*it);
-        }
-    } else if (isRunInteractiveMode(argc, argv)) {
-        // Let the user input feedback after each guess.
-        runAytoInteractive();
-    } else if (argc == 1) {
-        // Just run on a single answer, the dummy answer.
-        runAyto(DUMMY);
-    } else {
-        cout << "usage: ./ayto" << endl;
-        cout << "\t[-a | -all]                - Run on all permutations" << endl;
-        cout << "\t[[-f | -file] <file_name>] - Run on permutations in file" << endl;
-        cout << "\t[-i]                       - Interactive, wait for user_response" << endl;
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
 }
 
 Perm minimax(Perms* poss, Perms* queries_made)
@@ -347,7 +351,7 @@ void runAyto(Perm answer)
     cout << "Results:" << endl;
     for (int i = 0; i < tb_queries->size(); ++i) {
         cout << "[Round " << (i + 1) << "] "
-             << getPrintablePerm(tb_queries->get(i).toPerm()) << ", "
+             << getPrintablePerm(tb_queries->get(i).toString()) << ", "
              << getPrintablePerm(pm_queries->get(i)) << "." << endl;
     }
 
@@ -402,7 +406,7 @@ void runAytoInteractive()
     cout << "Results:" << endl;
     for (int i = 0; i < tb_queries->size(); ++i) {
         cout << "[Round " << (i + 1) << "] "
-             << getPrintablePerm((tb_queries->get(i).toPerm())) << ", "
+             << getPrintablePerm((tb_queries->get(i).toString())) << ", "
              << getPrintablePerm((pm_queries->get(i))) << "." << endl;
     }
 

@@ -1,6 +1,9 @@
-//
-// Created by Christopher Chute on 7/27/16.
-//
+/**
+ * ayto.cpp
+ * Christopher Chute
+ *
+ * Simulates minimax query algorithm for MTV's Are You The One?
+ */
 
 #ifndef GUARD_AYTO_H
 #define GUARD_AYTO_H
