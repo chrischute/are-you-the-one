@@ -8,7 +8,7 @@
 #ifndef GUARD_PERM_H
 #define GUARD_PERM_H
 
-#include <sstream>
+#include <algorithm>
 #include <string>
 
 // Perm: Permutation represented as a string permutation of 0123456789.

@@ -54,5 +54,8 @@ public:
     Perm& sample();
     // size: get the number of elements in the permutation set.
     std::vector<Perm>::size_type size();
+    // splitIntoChunks: split into numChunks evenly sized chunks.
+    Perms** copyIntoChunks(int);
+
 };
 #endif

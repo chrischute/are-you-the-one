@@ -8,39 +8,67 @@
 #include "ayto.h"
 
 int main(int argc, char **argv) {
-    //bool isVerbose = true;      // TODO: Add -v flag for verbose setting.
-    //bool isInteractive = false; // TODO: Clean up the switch for interactive vs. regular.
+    AytoRunSettings* settings = new AytoRunSettings();
+    srand(unsigned(time(NULL)));
 
-    if (isRunAllMode(argc, argv)) {
-        // Run on all 10! possible answers (warning: will take ~9 years).
-        Perm answer = DIGITS;
-        do {
-            runAyto(answer);
-        } while (next_permutation(answer.begin(), answer.end()));
-    } else if (isRunFileMode(argc, argv)) {
-        // Run on all answers in specified file at argv[2].
-        Perms* answers = new Perms();
-        answers->populateFromFile(argv[2]);
-        for (Perms::const_iterator it = answers->begin();
-             it != answers->end();
-             ++it) {
-            runAyto(*it);
+    if (settings->initializeFromArgs(argc, argv)) {
+        if (settings->_isAllPermutationsMode) {
+            cout << "Running on all possible answers." << endl;
+            Perm answer = DIGITS;
+            do {
+                runAreYouTheOne(answer, settings);
+            } while (next_permutation(answer.begin(), answer.end()));
+        } else if (settings->_isReadFromFileMode) {
+            cout << "Reading answers from " << settings->_fileToRead << "." << endl;
+            Perms *answers = new Perms();
+            answers->populateFromFile(settings->_fileToRead);
+            for (Perms::const_iterator answer = answers->begin();
+                 answer != answers->end();
+                 ++answer) {
+                runAreYouTheOne(*answer, settings);
+            }
+            delete answers;
+        } else if (settings->_isInteractiveMode) {
+            cout << "Interactive mode. I think I'm going to win." << endl;
+            runAreYouTheOne("", settings);
+        } else {
+            cout << "Running on a random answer." << endl;
+            // Just run on a random answer
+            Perm answer = DIGITS;
+            random_shuffle(answer.begin(), answer.end());
+            runAreYouTheOne(answer, settings);
         }
-    } else if (isRunInteractiveMode(argc, argv)) {
-        // Let the user input feedback after each guess.
-        runAytoInteractive();
-    } else if (argc == 1) {
-        // Just run on a single answer, the dummy answer.
-        runAyto(DUMMY);
     } else {
         cout << "usage: ./ayto" << endl;
-        cout << "\t[-a | -all]                - Run on all permutations" << endl;
-        cout << "\t[[-f | -file] <file_name>] - Run on permutations in file" << endl;
-        cout << "\t[-i]                       - Interactive, wait for user_response" << endl;
-        return EXIT_FAILURE;
+        cout << "\t[-a | -all]     * Run on all permutations" << endl;
+        cout << "\t[-f <filename>] * Run on permutations in file" << endl;
+        cout << "\t[-i]            * Interactive, user gives feedback" << endl;
+        cout << "\t[-v]            * Verbose mode, more printing" << endl;
     }
 
+    delete settings;
     return EXIT_SUCCESS;
+}
+
+bool AytoRunSettings::initializeFromArgs(int argc, char **argv) {
+    for (int i = 1; i < argc; ++i) {
+        if (strncmp(argv[i], "-a", 3) == 0) {
+            this->_isAllPermutationsMode = true;
+        } else if (strncmp(argv[i], "-f", 3) == 0) {
+            this->_isReadFromFileMode = true;
+            if (++i == argc) {
+                return false;
+            }
+            this->_fileToRead = argv[i];
+        } else if (strncmp(argv[i], "-i", 3) == 0) {
+            this->_isInteractiveMode = true;
+        } else if (strncmp(argv[i], "-v", 3) == 0) {
+            this->_isVerboseMode = true;
+        } else {
+            return false;
+        }
+    }
+    return true;
 }
 
 Perm getNextPerfectMatchingGuess(Perms *poss, Perms *guessesAlreadyMade)
@@ -58,7 +86,7 @@ Perm getNextPerfectMatchingGuess(Perms *poss, Perms *guessesAlreadyMade)
                 nextGuess = GUESS;
                 break;
             default:
-                nextGuess = minimax(poss, guessesAlreadyMade);
+                nextGuess = getNextGuessUsingMinimax(poss, guessesAlreadyMade);
                 break;
         }
     }
@@ -73,6 +101,7 @@ Match getNextTruthBoothGuess(Perms *poss, Matches *guessesAlreadyMade)
 
     if (guessesAlreadyMade->size() == 0 ||
             poss->size() == 1) {
+        // Nothing to gain from running minimax here.
         return Match(0, '0');
     }
 
@@ -92,13 +121,15 @@ Match getNextTruthBoothGuess(Perms *poss, Matches *guessesAlreadyMade)
     // The worst-case response is always the complement of the
     // best-case response. We want to optimize the worst case, which
     //  occurs when both yes/no cut the remaining solutions in half.
-    int optimalNumOccurrences = poss->size() / 2;
-    int closestNumOccurrences = poss->size() + 1;
+    long optimalNumOccurrences = poss->size() / 2;
+    long closestNumOccurrences = poss->size() + 1;
 
     for (map<Match, int>::const_iterator it = numOccurrencesOfMatch.begin();
         it != numOccurrencesOfMatch.end();
         ++it) {
-        if (abs(optimalNumOccurrences - it->second) <
+
+        if (!guessesAlreadyMade->contains(it->first) &&
+                (optimalNumOccurrences - it->second) <
                 abs(optimalNumOccurrences - closestNumOccurrences)) {
             nextGuess = it->first;
             closestNumOccurrences = it->second;
@@ -108,307 +139,203 @@ Match getNextTruthBoothGuess(Perms *poss, Matches *guessesAlreadyMade)
     return nextGuess;
 }
 
-bool isRunAllMode(int argc, char **argv)
+Perm getNextGuessUsingMinimax(Perms *possibleAnswers, Perms *guessesAlreadyMade)
 {
-    return argc == 2 &&
-           (strncmp(argv[1], "-all", 4) == 0
-            || strncmp(argv[1], "-a", 2) == 0);
-}
+    // Spin up threads to run minimax in parallel.
+    map<Perm, int>* bestGuessFromEachThread = new map<Perm, int>();
+    mutex *writeLock = new mutex();
+    vector<thread> minimaxThreads;
+    vector<ThreadArgs*> argsForMinimaxThreads;
+    Perms** chunksToEvaluate;
 
-bool isRunFileMode(int argc, char **argv)
-{
-    return argc == 3 &&
-           (strncmp(argv[1], "-file", 5) == 0
-            || strncmp(argv[1], "-f", 2) == 0);
-
-}
-
-bool isRunInteractiveMode(int argc, char **argv) {
-    return argc == 2 && strncmp(argv[1], "-i", 2) == 0;
-}
-
-Perm minimax(Perms* poss, Perms* queries_made)
-{
-    Perm best_query = "";
-    int best_worst_case = poss->size();
-
-    // Spin up 10 threads to run minimax in parallel.
-    map<Perm, int> *best_queries = new map<Perm, int>();
-    mutex *best_queries_lock = new mutex();
-    vector<thread> thread_jobs;
-    vector<struct targs*> thread_args;
-    Perms* chunks[PERM_LENGTH] = { NULL };
-
-    if (poss->size() > START_PART_MM) {
-        Perms* pool = new Perms();
-        pool->populateFromFile(POOL_FILENAME);
-        cout << "Choosing best from pool of " << pool->size()
-             << " at " << POOL_FILENAME << endl;
-
-        // Divide the possible queries into 10 chunks to evaluate.
-        int chunk_size = pool->size() / PERM_LENGTH;
-        int chunks_with_extra = pool->size() % PERM_LENGTH;
-        for (int i = 0; i < PERM_LENGTH; ++i) {
-            chunks[i] = new Perms();
-            int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
-            Perms::iterator begin_chunk = pool->begin();
-            Perms::iterator end_chunk = begin_chunk + n_to_add;
-
-            Perms* chunk = new Perms(begin_chunk, end_chunk);
-            chunks[i] = chunk;
-        }
-
-        for (int id = 0; id < PERM_LENGTH; ++id) {
-            Thread_args *args = new Thread_args {
-                    ._id = id,
-                    ._poss_answers = poss,
-                    ._poss_queries = chunks[id],
-                    ._queries_made = queries_made,
-                    ._best_queries = best_queries,
-                    ._mutex = best_queries_lock
-            };
-            thread_args.push_back(args);
-            thread_jobs.push_back(thread(minimaxPerThread, args));
-        }
-    } else if (poss->size() > START_FULL_MM) {
-        cout << "Partial minimax with " << poss->size()
-             << " answers remaining." << endl;
-        // Divide the possible queries into 10 chunks to evaluate.
-        int chunk_size = poss->size() / PERM_LENGTH;
-        int chunks_with_extra = poss->size() % PERM_LENGTH;
-        for (int i = 0; i < PERM_LENGTH; ++i) {
-            int n_to_add = chunks_with_extra-- > 0 ? chunk_size + 1 : chunk_size;
-            Perms::iterator begin_chunk = poss->begin();
-            Perms::iterator end_chunk = begin_chunk + n_to_add;
-
-            chunks[i] = new Perms(begin_chunk, end_chunk);
-        }
-
-        for (int id = 0; id < PERM_LENGTH; ++id) {
-            Thread_args *args = new Thread_args {
-                    ._id = id,
-                    ._poss_answers = poss,
-                    ._poss_queries = chunks[id],
-                    ._queries_made = queries_made,
-                    ._best_queries = best_queries,
-                    ._mutex = best_queries_lock
-            };
-            thread_args.push_back(args);
-            thread_jobs.push_back(thread(minimaxPerThread, args));
-        }
+    if (possibleAnswers->size() > START_PART_MM) {
+        // Select the best guess from a fixed pool of possibilities.
+        Perms* fixedPoolToEvaluate = new Perms();
+        fixedPoolToEvaluate->populateFromFile(POOL_FILENAME);
+        chunksToEvaluate = fixedPoolToEvaluate->copyIntoChunks(NUM_THREADS);
+        delete fixedPoolToEvaluate;
+    } else if (possibleAnswers->size() > START_FULL_MM) {
+        // Select the best guess from the possible remaining solutions.
+        chunksToEvaluate = possibleAnswers->copyIntoChunks(NUM_THREADS);
     } else {
-        cout << "Full minimax with " << poss->size()
-             << " answers remaining." << endl;
-        for (int id = 0; id < PERM_LENGTH; ++id) {
-            Thread_args *args = new Thread_args {
-                    ._id = id,
-                    ._poss_answers = poss,
-                    ._poss_queries = NULL,
-                    ._queries_made = queries_made,
-                    ._best_queries = best_queries,
-                    ._mutex = best_queries_lock
-            };
-            thread_args.push_back(args);
-            thread_jobs.push_back(thread(minimaxPerThread, args));
-        }
+        // Select the best guess from all possible permutations.
+        cout << "    Full minimax... May take up to one minute." << endl;
+        Perms* allPossible = new Perms();
+        allPossible->populateAll();
+        chunksToEvaluate = allPossible->copyIntoChunks(NUM_THREADS);
+        delete allPossible;
     }
+
+    for (int id = 0; id < NUM_THREADS; ++id) {
+        ThreadArgs *args = new ThreadArgs(
+                id,
+                possibleAnswers,
+                chunksToEvaluate[id],
+                guessesAlreadyMade,
+                bestGuessFromEachThread,
+                writeLock);
+        argsForMinimaxThreads.push_back(args);
+        minimaxThreads.push_back(thread(findBestGuessInChunk, args));
+    }
+
     // Wait for all threads to finish up.
-    for (vector<thread>::iterator it = thread_jobs.begin();
-         it != thread_jobs.end();
+    for (vector<thread>::iterator it = minimaxThreads.begin();
+         it != minimaxThreads.end();
          ++it) {
         it->join();
     }
 
-    // Find the best worst-case #remaining in candidates.
-    for (map<Perm, int>::const_iterator it = best_queries->begin();
-         it != best_queries->end();
+    // Find the best guess in the set bestGuessFromEachThread.
+    Perm bestGuess("");
+    long numRemainingAfterBestGuess = possibleAnswers->size();
+    for (map<Perm, int>::const_iterator it = bestGuessFromEachThread->begin();
+         it != bestGuessFromEachThread->end();
          ++it) {
-        Perm query = it->first;
-        int worst_case_num_remaining = it->second;
+        Perm guess = it->first;
+        int numRemainingAfterGuess = it->second;
 
-        if (worst_case_num_remaining < best_worst_case) {
-            best_worst_case = worst_case_num_remaining;
-            best_query = query;
+        if (numRemainingAfterGuess < numRemainingAfterBestGuess) {
+            bestGuess = guess;
+            numRemainingAfterBestGuess = numRemainingAfterGuess;
         }
     }
 
     // Clean up allocated args, chunks, map, and mutex.
-    for (vector<Thread_args *>::iterator it = thread_args.begin();
-         it != thread_args.end();
+    for (vector<ThreadArgs*>::iterator it = argsForMinimaxThreads.begin();
+         it != argsForMinimaxThreads.end();
          ++it) {
         delete *it;
     }
-    for (int i = 0; i < PERM_LENGTH; ++i) {
-        if (chunks[i] != NULL) {
-            delete chunks[i];
+    for (int i = 0; i < NUM_THREADS; ++i) {
+        if (chunksToEvaluate && chunksToEvaluate[i]) {
+            delete chunksToEvaluate[i];
         }
     }
-    delete best_queries;
-    delete best_queries_lock;
+    if (chunksToEvaluate) {
+        delete chunksToEvaluate;
+    }
+    delete bestGuessFromEachThread;
+    delete writeLock;
 
-    return best_query;
+    return bestGuess;
 }
 
-void minimaxPerThread(Thread_args *args)
+void findBestGuessInChunk(ThreadArgs *args)
 {
-    int thread_id = args->_id;
-    Perms *poss_answers = args->_poss_answers;
-    Perms *poss_queries = args->_poss_queries;
-    Perms *queries_made = args->_queries_made;
-    map<Perm, int> *best_queries = args->_best_queries; // Place best query from chunk here.
-    mutex *write_lock = args->_mutex;
-    bool do_full_minimax = poss_queries == NULL;
+    // Find the query in possibleGuesses which eliminates the most possible answers.
+    Perm bestGuess = DIGITS;
+    long numRemainingAfterBestGuess = args->_possibleAnswers->size();
 
-    // Find the query in poss_queries which eliminates the most possible answers.
-    Perm best_query = DIGITS;
-    int best_worst_case = poss_answers->size();
+    for (Perms::const_iterator possibleGuess = args->_possibleGuesses->begin();
+         possibleGuess != args->_possibleGuesses->end();
+         ++possibleGuess) {
+        Perm guess = *possibleGuess;
 
-    if (do_full_minimax) {
-        const char fd[] = { static_cast<char>('0' + thread_id) };
-        const string first_digit = string(fd, 1); // stays fixed as we loop over permutations of last_nine_digits
-        const string digits = DIGITS;
-        string last_nine_digits = digits.substr(0, thread_id) + digits.substr(thread_id + 1);
-
-        do {
-            Perm query = first_digit + last_nine_digits;
-            if (!queries_made->contains(query)) {
-                vector<int> match_count(PERM_LENGTH + 1, 0); // Maps #hits to count
-                // Check how many possibilities would remain after guessing query
-                for (Perms::const_iterator it = poss_answers->begin();
-                    it != poss_answers->end();
-                    ++it) {
-                    match_count[numInCommon(query, *it)] += 1;
-                }
-                // Find the # remaining in the worst-case scenario.
-                int worst_case =
-                        *max_element(match_count.begin(), match_count.end());
-                // If this is lowest worst-case #remaining, set low water mark.
-                if (worst_case < best_worst_case) {
-                    best_query = query;
-                    best_worst_case = worst_case;
-                }
+        if (!args->_guessesAlreadyMade->contains(guess)) {
+            vector<int> numRemainingGivenResponse(PERM_LENGTH + 1, 0);
+            // Check how many possibilities would remain after guessing guess
+            for (Perms::const_iterator it = args->_possibleAnswers->begin();
+                 it != args->_possibleAnswers->end();
+                 ++it) {
+                numRemainingGivenResponse[numInCommon(guess, *it)] += 1;
             }
-        } while (next_permutation(last_nine_digits.begin(), last_nine_digits.end()));
-    } else {
-        for (Perms::const_iterator poss_query = poss_queries->begin();
-             poss_query != poss_queries->end();
-             ++poss_query) {
-            Perm query = *poss_query;
-
-            if (!queries_made->contains(query)) {
-                vector<int> match_count(PERM_LENGTH + 1, 0); // Maps #hits to count
-                // Check how many possibilities would remain after guessing query
-                for (Perms::const_iterator it = poss_answers->begin();
-                     it != poss_answers->end();
-                     ++it) {
-                    match_count[numInCommon(query, *it)] += 1;
-                }
-                // Find the # remaining in the worst-case scenario.
-                int worst_case =
-                        *max_element(match_count.begin(), match_count.end());
-                // If this is lowest worst-case #remaining, set low water mark.
-                if (worst_case < best_worst_case) {
-                    best_query = query;
-                    best_worst_case = worst_case;
-                }
+            // Find the # remaining in the worst-case scenario.
+            int numRemainingAfterWorstResponse =
+                    *max_element(numRemainingGivenResponse.begin(),
+                                 numRemainingGivenResponse.end());
+            // If this is lowest worst-case #remaining, set low water mark.
+            if (numRemainingAfterWorstResponse < numRemainingAfterBestGuess) {
+                bestGuess = guess;
+                numRemainingAfterBestGuess = numRemainingAfterWorstResponse;
             }
         }
     }
 
-    write_lock->lock();
-    best_queries->insert(pair<Perm, int>(best_query, best_worst_case));
-    write_lock->unlock();
+    // After finding best guess in the chunk, write result to the shared dictionary.
+    args->_writeLock->lock();
+    args->_bestGuesses->insert(pair<Perm, int>(bestGuess, numRemainingAfterBestGuess));
+    args->_writeLock->unlock();
 
     return;
 }
 
-void runAyto(Perm answer)
+void runAreYouTheOne(Perm const &answer, AytoRunSettings const *settings)
 {
     Perms* poss = new Perms(); // Remaining possibilities for answer.
-    Matches* tb_queries = new Matches(); // Queries submitted in truth booth.
-    Perms* pm_queries = new Perms(); // Queries submitted in perf. match.
-
-    cout << "Answer " << answer << endl;
     poss->populateAll();
-    while (true) {
-        cout << "Round " << (tb_queries->size() + 1) << endl;
-        Match pair_to_guess = getNextTruthBoothGuess(poss, tb_queries);
-        tb_queries->add(pair_to_guess);
-        int isPairCorrect = pair_to_guess.isContainedIn(answer);
-        poss->filter(pair_to_guess, isPairCorrect);
+    Matches* tbGuessesAlreadyMade = new Matches(); // Queries submitted in truth booth.
+    Perms* pmGuessesAlreadyMade = new Perms(); // Queries submitted in perfect matching.
 
-        Perm full_to_guess = getNextPerfectMatchingGuess(poss, pm_queries);
-        pm_queries->add(full_to_guess);
-        int n_correct = numInCommon(full_to_guess, answer);
-        if (n_correct == answer.size()) {
-            break;
-        }
-        poss->filter(full_to_guess, n_correct);
-
-        cout << "Down to " << poss->size() << " remaining." << endl;
+    if (!settings->_isInteractiveMode) {
+        cout << "Answer " << answer << endl;
     }
 
-    cout << "Results:" << endl;
-    for (int i = 0; i < tb_queries->size(); ++i) {
-        cout << "[Round " << (i + 1) << "] "
-             << getPrintablePerm(tb_queries->get(i).toString()) << ", "
-             << getPrintablePerm(pm_queries->get(i)) << "." << endl;
-    }
-
-    delete poss;
-}
-
-void runAytoInteractive()
-{
-    Perms* poss = new Perms(); // Remaining possibilities for answer.
-    Matches* tb_queries = new Matches(); // Queries submitted in truth booth.
-    Perms* pm_queries = new Perms(); // Queries submitted in perf. match.
-
-
-    cout << "Interactive Mode" << endl;
-    poss->populateAll();
     while (true) {
-        cout << "Round " << (tb_queries->size() + 1) << endl;
-
-        Match pair_to_guess = getNextTruthBoothGuess(poss, tb_queries);
-        cout << "Truth booth: Is there a '" << pair_to_guess.charAtIndex
-             << "' in position " << pair_to_guess.index
-             << " (indexed starting with 0)? [yes/no]" << endl;
-        tb_queries->add(pair_to_guess);
-        string user_response;
-        cin >> user_response;
-        if (user_response[0] == 'y' || user_response[0] == 'Y') {
-            poss->filter(pair_to_guess, 1);
+        // Submit a single Match to the Truth Booth.
+        cout << "End of Week " << (tbGuessesAlreadyMade->size() + 1) << endl;
+        Match nextTbGuess = getNextTruthBoothGuess(poss, tbGuessesAlreadyMade);
+        tbGuessesAlreadyMade->add(nextTbGuess);
+        bool isPairCorrect;
+        if (settings->_isInteractiveMode) {
+            string userInput;
+            do {
+                cout << "Question: Is there a '" << nextTbGuess.charAtIndex
+                     << "' in position " << nextTbGuess.index
+                     << " (indexed starting with 0)? [yes/no]" << endl;
+                cin >> userInput;
+                isPairCorrect = userInput[0] == 'y' || userInput[0] == 'Y';
+            } while (userInput[0] != 'y' && userInput[0] != 'n' &&
+                     userInput[0] != 'Y' && userInput[0] != 'N');
         } else {
-            poss->filter(pair_to_guess, 0);
+            isPairCorrect = nextTbGuess.isContainedIn(answer);
+        }
+        poss->filter(nextTbGuess, isPairCorrect);
+        if (settings->_isVerboseMode) {
+            cout << "  * Truth Booth: " << nextTbGuess.toString() << endl;
+            cout << "    Now " << poss->size() << " remaining." << endl;
         }
 
-        Perm full_to_guess = getNextPerfectMatchingGuess(poss, pm_queries);
-        cout << "Perfect matching: How many of the following "
-             << "are in the correct spot?" << endl
-             << getPrintablePerm(full_to_guess) << endl;
-        int n_correct;
-        cin >> n_correct;
-        pm_queries->add(full_to_guess);
-        if (n_correct == PERM_LENGTH) {
+        // Submit a full Perm as the Perfect Matching.
+        Perm nextPmGuess = getNextPerfectMatchingGuess(poss, pmGuessesAlreadyMade);
+        pmGuessesAlreadyMade->add(nextPmGuess);
+        int numCorrect;
+        if (settings->_isInteractiveMode) {
+            do {
+                cout << "Question: How many of the following "
+                     << "are in the correct spot?" << endl
+                     << getPrintablePerm(nextPmGuess) << endl;
+                cin >> numCorrect;
+            } while (numCorrect < 0 || numCorrect > PERM_LENGTH);
+        } else {
+            numCorrect = numInCommon(nextPmGuess, answer);
+        }
+
+        poss->filter(nextPmGuess, numCorrect);
+        if (settings->_isVerboseMode) {
+            cout << "  * Perfect Matching: "
+                 << getPrintablePerm(nextPmGuess) << endl;
+            cout << "    Now " << poss->size() << " remaining." << endl;
+        }
+        if (numCorrect == PERM_LENGTH) {
             break;
         }
-        poss->filter(full_to_guess, n_correct);
-
-        if (poss->size() == 0) {
-            cout << "Error: That combination of responses is not possible." << endl
-                 << "Please check your responses and try again." << endl;
-            return;
+        if (settings->_isInteractiveMode && poss->size() == 0) {
+            cout << "Sorry, that's not a possible combination of responses."
+                 << endl << "Please try again." << endl;
+            break;
         }
-        cout << "Down to " << poss->size() << " remaining." << endl;
     }
 
+    // Print a summary of the game, the guesses made in each week.
     cout << "Results:" << endl;
-    for (int i = 0; i < tb_queries->size(); ++i) {
-        cout << "[Round " << (i + 1) << "] "
-             << getPrintablePerm((tb_queries->get(i).toString())) << ", "
-             << getPrintablePerm((pm_queries->get(i))) << "." << endl;
+    for (int i = 0; i < tbGuessesAlreadyMade->size(); ++i) {
+        int intWidth = (tbGuessesAlreadyMade->size() < 10 ? 1 : 2);
+        cout << "[Week " << setw(intWidth) << (i + 1) << "] "
+             << tbGuessesAlreadyMade->get(i).toString() << ", "
+             << getPrintablePerm(pmGuessesAlreadyMade->get(i)) << "." << endl;
     }
 
     delete poss;
+    delete tbGuessesAlreadyMade;
+    delete pmGuessesAlreadyMade;
 }

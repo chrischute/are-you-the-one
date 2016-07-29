@@ -9,6 +9,7 @@
 #define GUARD_MATCH_H
 
 #include <algorithm>
+#include <sstream>
 #include "Perm.h"
 
 class Match {
@@ -18,13 +19,13 @@ public:
 
     Match() : index(0), charAtIndex('0') { }
     Match(int i, char c) : index(i), charAtIndex(c) { }
-    bool isContainedIn(Perm &p) { return p[this->index] == this->charAtIndex; }
+    Match(long i, char c) : index((int) i), charAtIndex(c) { }
+    bool isContainedIn(Perm const& p) { return p[this->index] == this->charAtIndex; }
     std::string toString() {
-        const char charArray[] = {
-                static_cast<char>('0' + index),
-                charAtIndex
-        };
-        return std::string(charArray, 2);
+        std::stringstream builder;
+        builder << "(" << this->index
+                << ", " << this->charAtIndex << ")";
+        return builder.str();
     }
     bool operator==(Match const& that) const {
         return this->index == that.index &&

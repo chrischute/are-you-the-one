@@ -5,6 +5,7 @@
  * Typedef and utilities for working with a single permutation.
  */
 
+#include <sstream>
 #include "Perm.h"
 using namespace std;
 

@@ -5,6 +5,7 @@
  * Data structure and operations for permutations.
  */
 
+#include <cassert>
 #include "Perms.h"
 
 using namespace std;
@@ -81,7 +82,7 @@ void Perms::populateAll() {
     } while (next_permutation(p.begin(), p.end()));
 }
 
-// populateFromFile(ifstream): Fills with all permutations in the file at provided path.
+// populateFromFile(string): Fills with all permutations in the file at provided path.
 void Perms::populateFromFile(string filename) {
     Perm s;
     ifstream inputFile(filename);
@@ -101,4 +102,27 @@ Perm& Perms::sample() {
 // size: get the number of elements in the permutation set.
 vector<Perm>::size_type Perms::size() {
     return this->data->size();
+}
+
+// copyIntoChunks: copy into numChunks evenly sized chunks.
+// User is responsible for freeing returned chunks.
+Perms** Perms::copyIntoChunks(int numChunks) {
+    Perms** chunks = new Perms*[numChunks];
+    int chunkSize = this->size() / numChunks;
+    int numChunksWithOneExtra = this->size() % numChunks;
+
+    int i = 0;
+    for (Perms::iterator beginChunk = this->begin(), endChunk = this->begin();
+         beginChunk != this->end();
+         beginChunk = endChunk) {
+        endChunk += chunkSize;
+        if (numChunksWithOneExtra-- > 0) {
+            ++endChunk;
+        }
+
+        chunks[i++] = new Perms(beginChunk, endChunk);
+    }
+    assert(i == numChunks);
+
+    return chunks;
 }
