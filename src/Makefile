@@ -5,7 +5,7 @@ CC     = g++
 CFLAGS = -std=c++11 -Wall
 TARGET = ayto
 DPNDS1 = Perms
-DPNDS2 = Perm
+DPNDS2 = PerfectMatching
 DPNDS3 = Matches
 DPNDS4 = Match
 

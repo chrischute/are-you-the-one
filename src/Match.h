@@ -10,7 +10,7 @@
 
 #include <algorithm>
 #include <sstream>
-#include "Perm.h"
+#include "PerfectMatching.h"
 
 class Match {
 public:
@@ -20,7 +20,7 @@ public:
     Match() : index(0), charAtIndex('0') { }
     Match(int i, char c) : index(i), charAtIndex(c) { }
     Match(long i, char c) : index((int) i), charAtIndex(c) { }
-    bool isContainedIn(Perm const& p) { return p[this->index] == this->charAtIndex; }
+    bool isContainedIn(PerfectMatching const& p) { return p[this->index] == this->charAtIndex; }
     std::string toString() {
         std::stringstream builder;
         builder << "(" << this->index

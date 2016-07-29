@@ -19,7 +19,7 @@
 #include <cstring>
 #include <thread>
 #include <vector>
-#include "Perm.h"
+#include "PerfectMatching.h"
 #include "Perms.h"
 #include "Match.h"
 #include "Matches.h"
@@ -33,13 +33,15 @@ using namespace std;
 #define START_FULL_MM (314)   // Start w/ full minimax when <= this # left.
 #define START_PART_MM (10000) // Start partial minimax when <= this # left.
 
-struct AytoRunSettings {
+//typedef TruthBooth TB;
+
+struct AreYouTheOneSettings {
     bool _isAllPermutationsMode;
     bool _isReadFromFileMode;
     bool _isInteractiveMode;
     bool _isVerboseMode;
     std::string _fileToRead;
-    AytoRunSettings() :
+    AreYouTheOneSettings() :
             _isAllPermutationsMode(false),
             _isReadFromFileMode(false),
             _isInteractiveMode(false),
@@ -49,19 +51,19 @@ struct AytoRunSettings {
     bool initializeFromArgs(int argc, char **argv);
 };
 
-struct ThreadArgs {
+struct ArgsForMinimaxThread {
     int _threadId;                // ID of thread taking these args.
     Perms* _possibleAnswers;      // All permutations still possible to be the answer.
     Perms* _possibleGuesses;      // The chunk of potential queries to evaluate.
     Perms* _guessesAlreadyMade;   // All queries made so far.
-    map<Perm, int>* _bestGuesses; // Where each thread will store it's best query.
+    map<PerfectMatching, int>* _bestGuesses; // Where each thread will store it's best query.
     mutex* _writeLock;            // Mutex for the shared _best_queries map.
-    ThreadArgs(                   // Wordy initializer, but blame it on thread api.
+    ArgsForMinimaxThread(                   // Wordy initializer, but blame it on thread api.
             int threadId,
             Perms* possibleAnswers,
             Perms* possibleGuesses,
             Perms* guessesAlreadyMade,
-            map<Perm, int>* bestGuesses,
+            map<PerfectMatching, int>* bestGuesses,
             mutex* writeLock)
             :
             _threadId(threadId),
@@ -73,10 +75,10 @@ struct ThreadArgs {
     {}
 };
 
-void findBestGuessInChunk(ThreadArgs *);
-Perm getNextGuessUsingMinimax(Perms *, Perms *);
+void getBestGuessFromSubset(ArgsForMinimaxThread *);
+PerfectMatching getNextGuessUsingMinimax(Perms *, Perms *);
 Match getNextTruthBoothGuess(Perms*, Matches*);
-Perm getNextPerfectMatchingGuess(Perms*, Perms*);
-void runAreYouTheOne(Perm const &, AytoRunSettings const *);
+PerfectMatching getNextPerfectMatchingGuess(Perms*, Perms*);
+void runAreYouTheOne(PM const &, AreYouTheOneSettings const *);
 
 #endif

@@ -12,12 +12,12 @@ using namespace std;
 
 // Perms(): Initialize empty set of permutations.
 Perms::Perms() {
-    data = new vector<Perm>();
+    data = new vector<PerfectMatching>();
 }
 
 // Perms(Perms::iterator begin, Perms::iterator end): init from vector
 Perms::Perms(Perms::iterator begin, Perms::iterator end) {
-    data = new vector<Perm>(begin, end);
+    data = new vector<PerfectMatching>(begin, end);
 }
 
 // ~Perms: Destroy all associated data.
@@ -26,7 +26,7 @@ Perms::~Perms() {
 }
 
 // add: add an element to the set of permutations.
-void Perms::add(Perm& p) {
+void Perms::add(PerfectMatching& p) {
     data->push_back(p);
 }
 
@@ -36,7 +36,7 @@ Perms::iterator Perms::begin() {
 }
 
 // contains: true if and only if this contains specified permutation.
-bool Perms::contains(Perm& p) {
+bool Perms::contains(PerfectMatching const& p) {
     return find(this->begin(), this->end(), p) != this->end();
 }
 
@@ -46,8 +46,8 @@ Perms::iterator Perms::end() {
 }
 
 // filter: filter for only permutations with n matches in common with p.
-void Perms::filter(Perm& p, int n) {
-    vector<Perm>* newData = new vector<Perm>();
+void Perms::filter(PerfectMatching const& p, int n) {
+    vector<PerfectMatching>* newData = new vector<PerfectMatching>();
     for (Perms::iterator it = this->begin(); it != this->end(); ++it) {
         if (numInCommon(p, *it) == n) {
             newData->push_back(*it);
@@ -58,8 +58,8 @@ void Perms::filter(Perm& p, int n) {
     this->data = newData;
 }
 
-void Perms::filter(Match& m, bool isMatch) {
-    vector<Perm>* newData = new vector<Perm>();
+void Perms::filter(Match const& m, bool isMatch) {
+    vector<PerfectMatching>* newData = new vector<PerfectMatching>();
     for (Perms::iterator it = this->begin(); it != this->end(); ++it) {
         if (isMatch == ((*it)[m.index] == m.charAtIndex)) {
             newData->push_back(*it);
@@ -70,13 +70,13 @@ void Perms::filter(Match& m, bool isMatch) {
     this->data = newData;
 }
 
-Perm& Perms::get(int i) {
+PerfectMatching& Perms::get(int i) {
     return this->data->at(i);
 }
 
 // populateAll(int): Fills with all permutations of the provided length.
 void Perms::populateAll() {
-    Perm p = "0123456789";
+    PerfectMatching p = "0123456789";
     do {
         this->add(p);
     } while (next_permutation(p.begin(), p.end()));
@@ -84,7 +84,7 @@ void Perms::populateAll() {
 
 // populateFromFile(string): Fills with all permutations in the file at provided path.
 void Perms::populateFromFile(string filename) {
-    Perm s;
+    PerfectMatching s;
     ifstream inputFile(filename);
 
     while (inputFile >> s) {
@@ -95,12 +95,12 @@ void Perms::populateFromFile(string filename) {
 }
 
 // sample: peek at some element in the permutation set.
-Perm& Perms::sample() {
+PerfectMatching& Perms::sample() {
     return this->data->front();
 }
 
 // size: get the number of elements in the permutation set.
-vector<Perm>::size_type Perms::size() {
+vector<PerfectMatching>::size_type Perms::size() {
     return this->data->size();
 }
 
