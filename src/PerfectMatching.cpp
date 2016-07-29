@@ -5,6 +5,7 @@
  * Typedef and utilities for working with a single permutation.
  */
 
+#include <algorithm>
 #include <sstream>
 #include "PerfectMatching.h"
 using namespace std;

@@ -1,34 +1,36 @@
 /**
- * Matches.cpp
+ * TruthBoothSet.cpp
  * Christopher Chute
  *
  * Data structure and operations for single matches.
  */
 
-#include "Matches.h"
+#include "TruthBoothSet.h"
 using namespace std;
 
-Matches::Matches() {
-    this->data = new vector<Match>();
+typedef TruthBooth Tb;
+
+TruthBoothSet::TruthBoothSet() {
+    this->data = new vector<Tb>();
 }
 
-Matches::~Matches() {
+TruthBoothSet::~TruthBoothSet() {
     delete this->data;
 }
 
-void Matches::add(Match& m) {
+void TruthBoothSet::add(Tb& m) {
     this->data->push_back(m);
 }
 
-bool Matches::contains(const Match& m) {
+bool TruthBoothSet::contains(const Tb& m) {
     return find(this->data->begin(), this->data->end(), m)
            != this->data->end();
 }
 
-Match& Matches::get(int i) {
+Tb& TruthBoothSet::get(int i) {
     return this->data->at(i);
 }
 
-vector<Match>::size_type Matches::size() {
+vector<Tb>::size_type TruthBoothSet::size() {
     return this->data->size();
 }

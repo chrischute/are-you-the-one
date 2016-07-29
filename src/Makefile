@@ -4,10 +4,10 @@
 CC     = g++
 CFLAGS = -std=c++11 -Wall
 TARGET = ayto
-DPNDS1 = Perms
+DPNDS1 = PerfectMatchingSet
 DPNDS2 = PerfectMatching
-DPNDS3 = Matches
-DPNDS4 = Match
+DPNDS3 = TruthBoothSet
+DPNDS4 = TruthBooth
 
 all:
 	@echo "Error: Call 'make' from parent directory, above src."

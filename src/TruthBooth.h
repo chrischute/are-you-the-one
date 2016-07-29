@@ -1,5 +1,5 @@
 /**
- * Match.h
+ * TruthBooth.h
  * Christopher Chute
  *
  * Data structure for a single match.
@@ -12,14 +12,14 @@
 #include <sstream>
 #include "PerfectMatching.h"
 
-class Match {
+class TruthBooth {
 public:
     int index;
     char charAtIndex;
 
-    Match() : index(0), charAtIndex('0') { }
-    Match(int i, char c) : index(i), charAtIndex(c) { }
-    Match(long i, char c) : index((int) i), charAtIndex(c) { }
+    TruthBooth() : index(0), charAtIndex('0') { }
+    TruthBooth(int i, char c) : index(i), charAtIndex(c) { }
+    TruthBooth(long i, char c) : index((int) i), charAtIndex(c) { }
     bool isContainedIn(PerfectMatching const& p) { return p[this->index] == this->charAtIndex; }
     std::string toString() {
         std::stringstream builder;
@@ -27,11 +27,11 @@ public:
                 << ", " << this->charAtIndex << ")";
         return builder.str();
     }
-    bool operator==(Match const& that) const {
+    bool operator==(TruthBooth const& that) const {
         return this->index == that.index &&
                this->charAtIndex == that.charAtIndex;
     }
-    bool operator<(Match const& that) const {
+    bool operator<(TruthBooth const& that) const {
         return 10 * this->index + (this->charAtIndex - '0') <
                10 * that.index + (that.charAtIndex - '0');
     }

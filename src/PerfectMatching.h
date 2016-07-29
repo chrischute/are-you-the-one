@@ -8,16 +8,15 @@
 #ifndef GUARD_PERM_H
 #define GUARD_PERM_H
 
-#include <algorithm>
 #include <string>
 
-// PerfectMatching: Perfect matching represented as a string permutation of 0123456789.
+// PerfectMatching: Perfect matching represented as permutation of "0123456789".
 typedef std::string PerfectMatching;
 
-// numInCommon(PerfectMatching const&, PerfectMatching const&): Number of positions where p1 is same as p2.
+// numInCommon(Pm const&, Pm const&): Number of positions where p1 is same as p2.
 int numInCommon(PerfectMatching const&, PerfectMatching const&);
 
-// getPrintable(const PerfectMatching& p): get a nicely printable sequence rep.
+// getPrintable(const Pm& p): Get a nicely printable string from a PerfectMatching.
 std::string getPrintablePerm(PerfectMatching const&);
 
 #endif

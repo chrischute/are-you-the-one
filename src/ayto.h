@@ -20,9 +20,9 @@
 #include <thread>
 #include <vector>
 #include "PerfectMatching.h"
-#include "Perms.h"
-#include "Match.h"
-#include "Matches.h"
+#include "PerfectMatchingSet.h"
+#include "TruthBooth.h"
+#include "TruthBoothSet.h"
 using namespace std;
 
 #define DIGITS ("0123456789") // Available digits for a permutation.
@@ -33,9 +33,12 @@ using namespace std;
 #define START_FULL_MM (314)   // Start w/ full minimax when <= this # left.
 #define START_PART_MM (10000) // Start partial minimax when <= this # left.
 
-//typedef TruthBooth TB;
+typedef PerfectMatching Pm;
+typedef PerfectMatchingSet PmSet;
+typedef TruthBooth Tb;
+typedef TruthBoothSet TbSet;
 
-struct AreYouTheOneSettings {
+typedef struct AreYouTheOneSettings {
     bool _isAllPermutationsMode;
     bool _isReadFromFileMode;
     bool _isInteractiveMode;
@@ -49,21 +52,21 @@ struct AreYouTheOneSettings {
             _fileToRead("")
     {}
     bool initializeFromArgs(int argc, char **argv);
-};
+} AytoSettings;
 
 struct ArgsForMinimaxThread {
-    int _threadId;                // ID of thread taking these args.
-    Perms* _possibleAnswers;      // All permutations still possible to be the answer.
-    Perms* _possibleGuesses;      // The chunk of potential queries to evaluate.
-    Perms* _guessesAlreadyMade;   // All queries made so far.
-    map<PerfectMatching, int>* _bestGuesses; // Where each thread will store it's best query.
-    mutex* _writeLock;            // Mutex for the shared _best_queries map.
-    ArgsForMinimaxThread(                   // Wordy initializer, but blame it on thread api.
+    int _threadId;              // ID of thread taking these args.
+    PmSet* _possibleAnswers;    // All permutations still possible to be the answer.
+    PmSet* _possibleGuesses;    // The chunk of potential queries to evaluate.
+    PmSet* _guessesAlreadyMade; // All queries made so far.
+    map<Pm, int>* _bestGuesses; // Where each thread will store it's best query.
+    mutex* _writeLock;          // Mutex for the shared _best_queries map.
+    ArgsForMinimaxThread(       // Wordy initializer, but blame it on thread api.
             int threadId,
-            Perms* possibleAnswers,
-            Perms* possibleGuesses,
-            Perms* guessesAlreadyMade,
-            map<PerfectMatching, int>* bestGuesses,
+            PmSet* possibleAnswers,
+            PmSet* possibleGuesses,
+            PmSet* guessesAlreadyMade,
+            map<Pm, int>* bestGuesses,
             mutex* writeLock)
             :
             _threadId(threadId),
@@ -76,9 +79,9 @@ struct ArgsForMinimaxThread {
 };
 
 void getBestGuessFromSubset(ArgsForMinimaxThread *);
-PerfectMatching getNextGuessUsingMinimax(Perms *, Perms *);
-Match getNextTruthBoothGuess(Perms*, Matches*);
-PerfectMatching getNextPerfectMatchingGuess(Perms*, Perms*);
-void runAreYouTheOne(PM const &, AreYouTheOneSettings const *);
+Pm getNextGuessUsingMinimax(PmSet*, PmSet*);
+Tb getNextTruthBoothGuess(PmSet*, TbSet*);
+Pm getNextPerfectMatchingGuess(PmSet*, PmSet*);
+void runAreYouTheOne(PerfectMatching const&, AytoSettings const*);
 
 #endif

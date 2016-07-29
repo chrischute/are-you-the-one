@@ -7,10 +7,8 @@
 
 #include "ayto.h"
 
-typedef PerfectMatching PM;
-
 int main(int argc, char **argv) {
-    AreYouTheOneSettings* settings = new AreYouTheOneSettings();
+    AytoSettings* settings = new AytoSettings();
 
     if (settings->initializeFromArgs(argc, argv)) {
         if (settings->_isAllPermutationsMode) {
@@ -21,9 +19,9 @@ int main(int argc, char **argv) {
             } while (next_permutation(answer.begin(), answer.end()));
         } else if (settings->_isReadFromFileMode) {
             cout << "Reading answers from " << settings->_fileToRead << "." << endl;
-            Perms *answers = new Perms();
+            PmSet *answers = new PmSet();
             answers->populateFromFile(settings->_fileToRead);
-            for (Perms::const_iterator answer = answers->begin();
+            for (PmSet::const_iterator answer = answers->begin();
                  answer != answers->end();
                  ++answer) {
                 runAreYouTheOne(*answer, settings);
@@ -72,7 +70,7 @@ bool AreYouTheOneSettings::initializeFromArgs(int argc, char **argv) {
     return true;
 }
 
-PM getNextPMGuess(Perms *possibleAnswers, Perms *guessesAlreadyMade)
+Pm getNextPMGuess(PmSet *possibleAnswers, PmSet *guessesAlreadyMade)
 {
     if (possibleAnswers->size() == 1) {
         return possibleAnswers->get(0);
@@ -88,26 +86,26 @@ PM getNextPMGuess(Perms *possibleAnswers, Perms *guessesAlreadyMade)
     }
 }
 
-Match getNextTruthBoothGuess(Perms* possibleAnswers, Matches* guessesAlreadyMade)
+Tb getNextTruthBoothGuess(PmSet* possibleAnswers, TbSet* guessesAlreadyMade)
 {
-    Match nextGuess(-1, '_');
-    map<Match, int> numOccurrencesOfMatch;
+    Tb nextGuess(-1, '_');
+    map<Tb, int> numOccurrencesOfMatch;
 
     if (guessesAlreadyMade->size() == 0 ||
             possibleAnswers->size() == 1) {
         // Nothing to gain from running minimax here.
-        return Match(0, '0');
+        return Tb(0, '0');
     }
 
     // Count the number of occurrences in possible answers of each match.
-    for (Perms::const_iterator iterPerm = possibleAnswers->begin();
+    for (PmSet::const_iterator iterPerm = possibleAnswers->begin();
          iterPerm != possibleAnswers->end();
          ++iterPerm) {
-        PM::const_iterator firstIterChar = iterPerm->begin();
-        for (PM::const_iterator iterChar = iterPerm->begin();
+        Pm::const_iterator firstIterChar = iterPerm->begin();
+        for (Pm::const_iterator iterChar = iterPerm->begin();
             iterChar != iterPerm->end();
             ++iterChar) {
-            ++numOccurrencesOfMatch[Match(iterChar - firstIterChar, *iterChar)];
+            ++numOccurrencesOfMatch[Tb(iterChar - firstIterChar, *iterChar)];
         }
     }
 
@@ -118,7 +116,7 @@ Match getNextTruthBoothGuess(Perms* possibleAnswers, Matches* guessesAlreadyMade
     long optimalNumOccurrences = possibleAnswers->size() / 2;
     long closestNumOccurrences = possibleAnswers->size() + 1;
 
-    for (map<Match, int>::const_iterator it = numOccurrencesOfMatch.begin();
+    for (map<Tb, int>::const_iterator it = numOccurrencesOfMatch.begin();
         it != numOccurrencesOfMatch.end();
         ++it) {
 
@@ -133,18 +131,18 @@ Match getNextTruthBoothGuess(Perms* possibleAnswers, Matches* guessesAlreadyMade
     return nextGuess;
 }
 
-PM getNextGuessUsingMinimax(Perms* possibleAnswers, Perms* guessesAlreadyMade)
+Pm getNextGuessUsingMinimax(PmSet* possibleAnswers, PmSet* guessesAlreadyMade)
 {
     // Spin up threads to run minimax in parallel.
-    map<PM, int>* bestGuessFromEachThread = new map<PM, int>();
+    map<Pm, int>* bestGuessFromEachThread = new map<Pm, int>();
     mutex *writeLock = new mutex();
     vector<thread> minimaxThreads;
     vector<ArgsForMinimaxThread*> argsForMinimaxThreads;
-    Perms** chunksToEvaluate;
+    PmSet** chunksToEvaluate;
 
     if (possibleAnswers->size() > START_PART_MM) {
         // Select the best guess from a fixed pool of possibilities.
-        Perms* fixedPoolToEvaluate = new Perms();
+        PmSet* fixedPoolToEvaluate = new PmSet();
         fixedPoolToEvaluate->populateFromFile(POOL_FILENAME);
         chunksToEvaluate = fixedPoolToEvaluate->copyIntoChunks(NUM_THREADS);
         delete fixedPoolToEvaluate;
@@ -154,7 +152,7 @@ PM getNextGuessUsingMinimax(Perms* possibleAnswers, Perms* guessesAlreadyMade)
     } else {
         // Select the best guess from all possible permutations.
         cout << "    Full minimax... May take up to one minute." << endl;
-        Perms* allPossible = new Perms();
+        PmSet* allPossible = new PmSet();
         allPossible->populateAll();
         chunksToEvaluate = allPossible->copyIntoChunks(NUM_THREADS);
         delete allPossible;
@@ -180,12 +178,12 @@ PM getNextGuessUsingMinimax(Perms* possibleAnswers, Perms* guessesAlreadyMade)
     }
 
     // Find the best guess in the set bestGuessFromEachThread.
-    PM bestGuess("");
+    Pm bestGuess("");
     long numRemainingAfterBestGuess = possibleAnswers->size();
-    for (map<PM, int>::const_iterator it = bestGuessFromEachThread->begin();
+    for (map<Pm, int>::const_iterator it = bestGuessFromEachThread->begin();
          it != bestGuessFromEachThread->end();
          ++it) {
-        PM guess = it->first;
+        Pm guess = it->first;
         int numRemainingAfterGuess = it->second;
 
         if (numRemainingAfterGuess < numRemainingAfterBestGuess) {
@@ -217,18 +215,18 @@ PM getNextGuessUsingMinimax(Perms* possibleAnswers, Perms* guessesAlreadyMade)
 void getBestGuessFromSubset(ArgsForMinimaxThread* args)
 {
     // Find the query in possibleGuesses which eliminates the most possible answers.
-    PM bestGuess = DIGITS;
+    Pm bestGuess = DIGITS;
     long numRemainingAfterBestGuess = args->_possibleAnswers->size();
 
-    for (Perms::const_iterator possibleGuess = args->_possibleGuesses->begin();
+    for (PmSet::const_iterator possibleGuess = args->_possibleGuesses->begin();
          possibleGuess != args->_possibleGuesses->end();
          ++possibleGuess) {
-        PM guess = *possibleGuess;
+        Pm guess = *possibleGuess;
 
         if (!args->_guessesAlreadyMade->contains(guess)) {
             vector<int> numRemainingGivenResponse(PERM_LENGTH + 1, 0);
             // Check how many possibilities would remain after guessing guess
-            for (Perms::const_iterator it = args->_possibleAnswers->begin();
+            for (PmSet::const_iterator it = args->_possibleAnswers->begin();
                  it != args->_possibleAnswers->end();
                  ++it) {
                 numRemainingGivenResponse[numInCommon(guess, *it)] += 1;
@@ -247,27 +245,27 @@ void getBestGuessFromSubset(ArgsForMinimaxThread* args)
 
     // After finding best guess in the chunk, write result to the shared dictionary.
     args->_writeLock->lock();
-    args->_bestGuesses->insert(pair<PM, int>(bestGuess, numRemainingAfterBestGuess));
+    args->_bestGuesses->insert(pair<Pm, int>(bestGuess, numRemainingAfterBestGuess));
     args->_writeLock->unlock();
 
     return;
 }
 
-void runAreYouTheOne(PM const& answer, AreYouTheOneSettings const* settings)
+void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
 {
-    Perms* possibleAnswers = new Perms(); // Remaining possibilities for answer.
+    PmSet* possibleAnswers = new PmSet(); // Remaining possibilities for answer.
     possibleAnswers->populateAll();
-    Matches* tbGuessesAlreadyMade = new Matches(); // Queries submitted in truth booth.
-    Perms* pmGuessesAlreadyMade = new Perms(); // Queries submitted in perfect matching.
+    TbSet* tbGuessesAlreadyMade = new TbSet(); // Queries submitted in truth booth.
+    PmSet* pmGuessesAlreadyMade = new PmSet(); // Queries submitted in perfect matching.
 
     if (!settings->_isInteractiveMode) {
         cout << "Answer " << answer << endl;
     }
 
     while (true) {
-        // Submit a single Match to the Truth Booth.
+        // Submit a single Tb to the Truth Booth.
         cout << "End of Week " << (tbGuessesAlreadyMade->size() + 1) << endl;
-        Match nextTbGuess = getNextTruthBoothGuess(possibleAnswers, tbGuessesAlreadyMade);
+        Tb nextTbGuess = getNextTruthBoothGuess(possibleAnswers, tbGuessesAlreadyMade);
         tbGuessesAlreadyMade->add(nextTbGuess);
         bool isPairCorrect;
         if (settings->_isInteractiveMode) {
@@ -290,7 +288,7 @@ void runAreYouTheOne(PM const& answer, AreYouTheOneSettings const* settings)
         }
 
         // Submit a full PM as the Perfect Matching.
-        PM nextPMGuess = getNextPMGuess(possibleAnswers, pmGuessesAlreadyMade);
+        Pm nextPMGuess = getNextPMGuess(possibleAnswers, pmGuessesAlreadyMade);
         pmGuessesAlreadyMade->add(nextPMGuess);
         int numCorrect;
         if (settings->_isInteractiveMode) {
