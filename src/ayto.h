@@ -24,18 +24,30 @@ typedef TruthBooth Tb;
 typedef TruthBoothSet TbSet;
 
 typedef struct AreYouTheOneSettings {
-    bool _isAllPermutationsMode;
-    bool _isReadFromFileMode;
-    bool _isInteractiveMode;
-    bool _isVerboseMode;
     std::string _fileToRead;
+    bool _isAllPermutationsMode;
+    bool _isInteractiveMode;
+    bool _isPrintNumbersMode;
+    bool _isReadFromFileMode;
+    bool _isVerboseMode;
+    std::map<int, std::string>* _femaleNames; // Index maps to female name.
+    std::map<char, std::string>* _maleNames;  // Char at index maps to male name.
     AreYouTheOneSettings() :
+            _fileToRead(""),
             _isAllPermutationsMode(false),
-            _isReadFromFileMode(false),
             _isInteractiveMode(false),
+            _isPrintNumbersMode(false),
+            _isReadFromFileMode(false),
             _isVerboseMode(true),
-            _fileToRead("")
+            _femaleNames(nullptr),
+            _maleNames(nullptr)
     {}
+    ~AreYouTheOneSettings() {
+        if (!_isPrintNumbersMode) {
+            delete _femaleNames;
+            delete _maleNames;
+        }
+    }
     bool initializeFromArgs(int argc, char **argv);
 } AytoSettings;
 
@@ -67,6 +79,14 @@ void getBestGuessFromSubset(ArgsForMinimaxThread *);
 Pm getNextGuessUsingMinimax(PmSet*, PmSet*);
 Pm getNextPerfectMatchingGuess(PmSet*, PmSet*);
 Tb getNextTruthBoothGuess(PmSet*, TbSet*);
-void runAreYouTheOne(PerfectMatching const&, AytoSettings const&);
+void runAreYouTheOne(PerfectMatching const&, AytoSettings const*);
+std::string getPrintableNames(PerfectMatching const&,
+                              std::map<int, std::string>*,
+                              std::map<char, std::string>*);
+std::string getPrintableNames(TruthBooth const&,
+                              std::map<int, std::string>*,
+                              std::map<char, std::string>*);
+std::string getPrintableNumbers(PerfectMatching const&);
+void shufflePerfectMatching(Pm &p);
 
 #endif

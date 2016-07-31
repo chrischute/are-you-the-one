@@ -21,10 +21,11 @@ public:
     TruthBooth(long i, char c) : index((int) i), charAtIndex(c) { }
     bool isContainedIn(PerfectMatching const& p) { return p[this->index] == this->charAtIndex; }
     std::string toString() {
-        std::stringstream tbStringBuilder;
-        tbStringBuilder << "(" << this->index
-                << ", " << this->charAtIndex << ")";
-        return tbStringBuilder.str();
+        const char chars[] = {
+                static_cast<char>('0' + index),
+                this->charAtIndex
+        };
+        return std::string(chars, 2);
     }
     bool operator==(TruthBooth const& that) const {
         return this->index == that.index &&

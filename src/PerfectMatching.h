@@ -11,10 +11,7 @@
 // PerfectMatching: Perfect matching represented as permutation of "0123456789".
 typedef std::string PerfectMatching;
 
-// numInCommon(Pm const&, Pm const&): Number of positions where p1 is same as p2.
-int numInCommon(PerfectMatching const&, PerfectMatching const&);
-
-// getPrintable(const Pm& p): Get a nicely printable string from a PerfectMatching.
-std::string getPrintablePerm(PerfectMatching const&);
+// numInCommon(Pm const&, Pm const&): Number of positions where pm1 is same as pm2.
+int numInCommon(PerfectMatching const& pm1, PerfectMatching const& pm2);
 
 #endif

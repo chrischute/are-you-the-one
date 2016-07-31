@@ -5,36 +5,13 @@
  * Typedef and utilities for working with a single permutation.
  */
 
-#include <sstream>
+#include <string>
 #include "PerfectMatching.h"
 
-using std::string;
-using std::stringstream;
-
-int numInCommon(PerfectMatching const& p1, PerfectMatching const& p2) {
-    int l1 = p1.size();
-    int l2 = p2.size();
-    int score = 0;
-
-    for (int i = 0; i < l1 && i < l2; ++i) {
-        if (p1[i] == p2[i]) {
-            ++score;
-        }
-    }
-
-    return score;
-}
-
-string getPrintablePerm(PerfectMatching const& p) {
-    stringstream printableStringBuilder;
-
-    printableStringBuilder << "(";
-    for (PerfectMatching::const_iterator i = p.begin(); i != p.end(); i++) {
-        printableStringBuilder << *i;
-        if (i != p.end() - 1)
-            printableStringBuilder << ", ";
-    }
-    printableStringBuilder << ")";
-
-    return printableStringBuilder.str();
+int numInCommon(PerfectMatching const& pm1, PerfectMatching const& pm2) {
+    int numInCommon = 0;
+    for (int i = 0; i < pm1.size() && i < pm2.size(); ++i)
+        if (pm1[i] == pm2[i])
+            ++numInCommon;
+    return numInCommon;
 }
