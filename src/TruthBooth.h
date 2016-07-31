@@ -5,10 +5,9 @@
  * Data structure for a single match.
  */
 
-#ifndef GUARD_MATCH_H
-#define GUARD_MATCH_H
+#ifndef GUARD_TRUTH_BOOTH_H
+#define GUARD_TRUTH_BOOTH_H
 
-#include <algorithm>
 #include <sstream>
 #include "PerfectMatching.h"
 
@@ -22,10 +21,10 @@ public:
     TruthBooth(long i, char c) : index((int) i), charAtIndex(c) { }
     bool isContainedIn(PerfectMatching const& p) { return p[this->index] == this->charAtIndex; }
     std::string toString() {
-        std::stringstream builder;
-        builder << "(" << this->index
+        std::stringstream tbStringBuilder;
+        tbStringBuilder << "(" << this->index
                 << ", " << this->charAtIndex << ")";
-        return builder.str();
+        return tbStringBuilder.str();
     }
     bool operator==(TruthBooth const& that) const {
         return this->index == that.index &&

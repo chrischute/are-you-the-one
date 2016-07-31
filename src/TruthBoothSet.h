@@ -2,13 +2,12 @@
  * TruthBoothSet.h
  * Christopher Chute
  *
- * Data structure and operations for single matches.
+ * Data structure and utilities for container of Truth Booth guesses.
  */
 
-#ifndef GUARD_MATCHES_H
-#define GUARD_MATCHES_H
+#ifndef GUARD_TRUTH_BOOTH_SET_H
+#define GUARD_TRUTH_BOOTH_SET_H
 
-#include <algorithm>
 #include <vector>
 #include "TruthBooth.h"
 
@@ -20,7 +19,7 @@ public:
     ~TruthBoothSet();
 
     void add(TruthBooth&);
-    bool contains(const TruthBooth&);
+    bool contains(TruthBooth const &);
     TruthBooth& get(int i);
     std::vector<TruthBooth>::size_type size();
 };

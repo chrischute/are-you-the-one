@@ -5,10 +5,11 @@
  * Typedef and utilities for working with a single permutation.
  */
 
-#include <algorithm>
 #include <sstream>
 #include "PerfectMatching.h"
-using namespace std;
+
+using std::string;
+using std::stringstream;
 
 int numInCommon(PerfectMatching const& p1, PerfectMatching const& p2) {
     int l1 = p1.size();

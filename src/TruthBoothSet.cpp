@@ -2,11 +2,14 @@
  * TruthBoothSet.cpp
  * Christopher Chute
  *
- * Data structure and operations for single matches.
+ * Data structure and utilities for container of Truth Booth guesses.
  */
 
+#include <algorithm>
 #include "TruthBoothSet.h"
-using namespace std;
+
+using std::find;
+using std::vector;
 
 typedef TruthBooth Tb;
 
@@ -22,7 +25,7 @@ void TruthBoothSet::add(Tb& m) {
     this->data->push_back(m);
 }
 
-bool TruthBoothSet::contains(const Tb& m) {
+bool TruthBoothSet::contains(Tb const& m) {
     return find(this->data->begin(), this->data->end(), m)
            != this->data->end();
 }

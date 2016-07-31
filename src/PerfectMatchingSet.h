@@ -8,9 +8,6 @@
 #ifndef GUARD_PERFECT_MATCHING_SET_H
 #define GUARD_PERFECT_MATCHING_SET_H
 
-#include <algorithm>
-#include <fstream>
-#include <string>
 #include <vector>
 #include "PerfectMatching.h"
 #include "TruthBooth.h"

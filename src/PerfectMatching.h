@@ -8,8 +8,6 @@
 #ifndef GUARD_PERFECT_MATCHING_H
 #define GUARD_PERFECT_MATCHING_H
 
-#include <string>
-
 // PerfectMatching: Perfect matching represented as permutation of "0123456789".
 typedef std::string PerfectMatching;
 

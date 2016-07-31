@@ -1,24 +1,15 @@
 /**
- * ayto.cpp
+ * ayto.h
  * Christopher Chute
  *
- * Simulates minimax query algorithm for MTV's Are You The One?
+ * Guess generator for MTV's Are You The One?
  */
 
 #ifndef GUARD_AYTO_H
 #define GUARD_AYTO_H
 
-#include <algorithm>
-#include <cassert>
-#include <cstdlib>
-#include <ctime>
-#include <iostream>
-#include <iomanip>
 #include <map>
 #include <mutex>
-#include <cstring>
-#include <thread>
-#include <vector>
 #include "PerfectMatching.h"
 #include "PerfectMatchingSet.h"
 #include "TruthBooth.h"
@@ -27,19 +18,10 @@
 using std::map;
 using std::mutex;
 
-#define DIGITS ("0123456789") // Available digits for a permutation.
-#define GUESS  ("4579108623") // The fixed guess made in the second turn.
-#define NUM_THREADS (10)      // Number of threads to use during minimax.
-#define PERM_LENGTH (10)      // Number of elements in a permutation.
-#define POOL_FILENAME ("scripts/pool.txt") // Location of fixed guess pool.
-#define START_FULL_MM (314)   // Start w/ full minimax when <= this # left.
-#define START_PART_MM (10000) // Start partial minimax when <= this # left.
-
 typedef PerfectMatching Pm;
 typedef PerfectMatchingSet PmSet;
 typedef TruthBooth Tb;
 typedef TruthBoothSet TbSet;
-
 
 typedef struct AreYouTheOneSettings {
     bool _isAllPermutationsMode;
@@ -83,8 +65,8 @@ struct ArgsForMinimaxThread {
 
 void getBestGuessFromSubset(ArgsForMinimaxThread *);
 Pm getNextGuessUsingMinimax(PmSet*, PmSet*);
-Tb getNextTruthBoothGuess(PmSet*, TbSet*);
 Pm getNextPerfectMatchingGuess(PmSet*, PmSet*);
-void runAreYouTheOne(PerfectMatching const&, AytoSettings const*);
+Tb getNextTruthBoothGuess(PmSet*, TbSet*);
+void runAreYouTheOne(PerfectMatching const&, AytoSettings const&);
 
 #endif

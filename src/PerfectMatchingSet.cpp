@@ -2,12 +2,16 @@
  * PerfectMatchingSet.cpp
  * Christopher Chute
  * 
- * Data structure and operations for permutations.
+ * Data structure and utilities for container of Perfect Matching guesses.
  */
 
 #include <cassert>
+#include <fstream>
 #include "PerfectMatchingSet.h"
-using namespace std;
+
+using std::ifstream;
+using std::string;
+using std::vector;
 
 typedef PerfectMatching Pm;
 typedef TruthBooth Tb;
@@ -17,7 +21,7 @@ PerfectMatchingSet::PerfectMatchingSet(){
     this->data = new vector<Pm>();
 }
 
-// PerfectMatchingSet(PerfectMatchingSet::iterator begin, PerfectMatchingSet::iterator end): init from vector
+// PerfectMatchingSet(iterator begin, iterator end): Initialize from vector.
 PerfectMatchingSet::PerfectMatchingSet(iterator begin, iterator end) {
     this->data = new vector<Pm>(begin, end);
 }
@@ -73,7 +77,7 @@ void PerfectMatchingSet::filter(Tb const& m, bool isMatch) {
 }
 
 Pm& PerfectMatchingSet::get(int i) {
-    return this->data->at(i);
+    return this->data->at(unsigned(i));
 }
 
 // populateAll(int): Fills with all permutations of the provided length.
@@ -105,8 +109,8 @@ vector<Pm>::size_type PerfectMatchingSet::size() {
 // User is responsible for freeing returned chunks.
 PerfectMatchingSet** PerfectMatchingSet::copyIntoChunks(int numChunks) {
     PerfectMatchingSet** chunks = new PerfectMatchingSet*[numChunks];
-    int chunkSize = this->size() / numChunks;
-    int numChunksWithOneExtra = this->size() % numChunks;
+    long chunkSize = this->size() / numChunks;
+    long numChunksWithOneExtra = this->size() % numChunks;
 
     int i = 0;
     for (PerfectMatchingSet::iterator beginChunk = this->begin(), endChunk = this->begin();

@@ -5,7 +5,20 @@
  * Guess generator for MTV's Are You The One?
  */
 
+#include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <thread>
 #include "ayto.h"
+
+#define DIGITS ("0123456789") // Available digits for a permutation.
+#define GUESS  ("4579108623") // The fixed guess made in the second turn.
+#define NUM_THREADS (10)      // Number of threads to use during minimax.
+#define PERM_LENGTH (10)      // Number of elements in a permutation.
+#define POOL_FILENAME ("scripts/pool.txt") // Location of fixed guess pool.
+#define START_FULL_MM (314)   // Start w/ full minimax when <= this # left.
+#define START_PART_MM (10000) // Start partial minimax when <= this # left.
+
 using std::abs;
 using std::cout;
 using std::cin;
@@ -17,26 +30,26 @@ using std::thread;
 using std::vector;
 
 int main(int argc, char** argv) {
-    AytoSettings* settings = new AytoSettings();
+    AytoSettings settings;
 
-    if (settings->initializeFromArgs(argc, argv)) {
-        if (settings->_isAllPermutationsMode) {
+    if (settings.initializeFromArgs(argc, argv)) {
+        if (settings._isAllPermutationsMode) {
             cout << "Running on all possible answers." << endl;
             PerfectMatching answer = DIGITS;
             do {
                 runAreYouTheOne(answer, settings);
             } while (next_permutation(answer.begin(), answer.end()));
-        } else if (settings->_isReadFromFileMode) {
-            cout << "Reading answers from " << settings->_fileToRead << "." << endl;
+        } else if (settings._isReadFromFileMode) {
+            cout << "Reading answers from " << settings._fileToRead << "." << endl;
             PmSet *answers = new PmSet();
-            answers->populateFromFile(settings->_fileToRead);
+            answers->populateFromFile(settings._fileToRead);
             for (PmSet::const_iterator answer = answers->begin();
                  answer != answers->end();
                  ++answer) {
                 runAreYouTheOne(*answer, settings);
             }
             delete answers;
-        } else if (settings->_isInteractiveMode) {
+        } else if (settings._isInteractiveMode) {
             cout << "Interactive mode. I think I'm going to win." << endl;
             runAreYouTheOne("", settings);
         } else {
@@ -54,7 +67,6 @@ int main(int argc, char** argv) {
         cout << "\t[-v]            * Verbose mode, more printing" << endl;
     }
 
-    delete settings;
     return EXIT_SUCCESS;
 }
 
@@ -144,7 +156,7 @@ Pm getNextGuessUsingMinimax(PmSet* possibleAnswers, PmSet* guessesAlreadyMade)
 {
     // Spin up threads to run minimax in parallel.
     map<Pm, int>* bestGuessFromEachThread = new map<Pm, int>();
-    mutex *writeLock = new mutex();
+    mutex* writeLock = new mutex();
     vector<thread> minimaxThreads;
     vector<ArgsForMinimaxThread*> argsForMinimaxThreads;
     PmSet** chunksToEvaluate;
@@ -260,14 +272,14 @@ void getBestGuessFromSubset(ArgsForMinimaxThread* args)
     return;
 }
 
-void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
+void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const& settings)
 {
-    PmSet* possibleAnswers = new PmSet(); // Remaining possibilities for answer.
-    possibleAnswers->populateAll();
     TbSet* tbGuessesAlreadyMade = new TbSet(); // Queries submitted in truth booth.
     PmSet* pmGuessesAlreadyMade = new PmSet(); // Queries submitted in perfect matching.
+    PmSet* possibleAnswers = new PmSet();      // Remaining possibilities for answer.
+    possibleAnswers->populateAll();
 
-    if (!settings->_isInteractiveMode) {
+    if (!settings._isInteractiveMode) {
         cout << "Answer " << answer << endl;
     }
 
@@ -277,7 +289,7 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
         Tb nextTbGuess = getNextTruthBoothGuess(possibleAnswers, tbGuessesAlreadyMade);
         tbGuessesAlreadyMade->add(nextTbGuess);
         bool isPairCorrect;
-        if (settings->_isInteractiveMode) {
+        if (settings._isInteractiveMode) {
             string userInput;
             do {
                 cout << "Question: Is there a '" << nextTbGuess.charAtIndex
@@ -291,7 +303,7 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
             isPairCorrect = nextTbGuess.isContainedIn(answer);
         }
         possibleAnswers->filter(nextTbGuess, isPairCorrect);
-        if (settings->_isVerboseMode) {
+        if (settings._isVerboseMode) {
             cout << "  * Truth Booth: " << nextTbGuess.toString() << endl;
             cout << "    Now " << possibleAnswers->size() << " remaining." << endl;
         }
@@ -300,7 +312,7 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
         Pm nextPMGuess = getNextPerfectMatchingGuess(possibleAnswers, pmGuessesAlreadyMade);
         pmGuessesAlreadyMade->add(nextPMGuess);
         int numCorrect;
-        if (settings->_isInteractiveMode) {
+        if (settings._isInteractiveMode) {
             do {
                 cout << "Question: How many of the following "
                      << "are in the correct spot?" << endl
@@ -312,7 +324,7 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
         }
 
         possibleAnswers->filter(nextPMGuess, numCorrect);
-        if (settings->_isVerboseMode) {
+        if (settings._isVerboseMode) {
             cout << "  * Perfect Matching: "
                  << getPrintablePerm(nextPMGuess) << endl;
             cout << "    Now " << possibleAnswers->size() << " remaining." << endl;
@@ -320,7 +332,7 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
         if (numCorrect == PERM_LENGTH) {
             break;
         }
-        if (settings->_isInteractiveMode && possibleAnswers->size() == 0) {
+        if (settings._isInteractiveMode && possibleAnswers->size() == 0) {
             cout << "Sorry, that's not a possible combination of responses."
                  << endl << "Please try again." << endl;
             break;
@@ -336,7 +348,7 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
              << getPrintablePerm(pmGuessesAlreadyMade->get(i)) << "." << endl;
     }
 
-    delete possibleAnswers;
     delete tbGuessesAlreadyMade;
     delete pmGuessesAlreadyMade;
+    delete possibleAnswers;
 }
