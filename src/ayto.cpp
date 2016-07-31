@@ -6,8 +6,10 @@
  */
 
 #include <algorithm>
+#include <cstdlib>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #include <thread>
 #include "ayto.h"
 
@@ -23,40 +25,44 @@ using std::abs;
 using std::cout;
 using std::cin;
 using std::endl;
+using std::flush;
 using std::pair;
+using std::rand;
 using std::setw;
+using std::srand;
 using std::string;
+using std::stringstream;
 using std::thread;
 using std::vector;
 
 int main(int argc, char** argv) {
-    AytoSettings settings;
+    AytoSettings* settings = new AytoSettings();
 
-    if (settings.initializeFromArgs(argc, argv)) {
-        if (settings._isAllPermutationsMode) {
+    if (settings->initializeFromArgs(argc, argv)) {
+        if (settings->_isAllPermutationsMode) {
             cout << "Running on all possible answers." << endl;
             PerfectMatching answer = DIGITS;
             do {
                 runAreYouTheOne(answer, settings);
             } while (next_permutation(answer.begin(), answer.end()));
-        } else if (settings._isReadFromFileMode) {
-            cout << "Reading answers from " << settings._fileToRead << "." << endl;
+        } else if (settings->_isReadFromFileMode) {
+            cout << "Reading answers from " << settings->_fileToRead << "." << endl;
             PmSet *answers = new PmSet();
-            answers->populateFromFile(settings._fileToRead);
+            answers->populateFromFile(settings->_fileToRead);
             for (PmSet::const_iterator answer = answers->begin();
                  answer != answers->end();
                  ++answer) {
                 runAreYouTheOne(*answer, settings);
             }
             delete answers;
-        } else if (settings._isInteractiveMode) {
+        } else if (settings->_isInteractiveMode) {
             cout << "Interactive mode. I think I'm going to win." << endl;
             runAreYouTheOne("", settings);
         } else {
             cout << "Running on a random answer." << endl;
             PerfectMatching answer = DIGITS;
-            srand(unsigned(time(NULL)));
-            random_shuffle(answer.begin(), answer.end());
+            std::srand(unsigned(std::time(nullptr)));
+            shufflePerfectMatching(answer);
             runAreYouTheOne(answer, settings);
         }
     } else {
@@ -66,6 +72,8 @@ int main(int argc, char** argv) {
         cout << "\t[-i]            * Interactive, user gives feedback" << endl;
         cout << "\t[-v]            * Verbose mode, more printing" << endl;
     }
+
+    delete settings;
 
     return EXIT_SUCCESS;
 }
@@ -84,10 +92,43 @@ bool AreYouTheOneSettings::initializeFromArgs(int argc, char** argv) {
             this->_isInteractiveMode = true;
         } else if (strncmp(argv[i], "-v", 3) == 0) {
             this->_isVerboseMode = true;
+        } else if (strncmp(argv[i], "-n", 3) == 0) {
+            this->_isPrintNumbersMode = true;
         } else {
             return false;
         }
     }
+
+    // Dictionaries for printing to the console. Males map char -> name
+    // because the PerfectMatching string is a permutation of their names.
+    if (!this->_isPrintNumbersMode) {
+        this->_femaleNames = new map<int, string>{
+                {0, "Amber"},
+                {1, "Ashleigh"},
+                {2, "Brittany"},
+                {3, "Coleysia"},
+                {4, "Jacy"},
+                {5, "Jessica"},
+                {6, "Kayla"},
+                {7, "Paige"},
+                {8, "Shanley"},
+                {9, "Simone"}
+        };
+
+        this->_maleNames = new map<char, string>{
+                {'0', "Adam"},
+                {'1', "Chris S."},
+                {'2', "Chris T."},
+                {'3', "Dillan"},
+                {'4', "Dre"},
+                {'5', "Ethan"},
+                {'6', "John"},
+                {'7', "Joey"},
+                {'8', "Ryan"},
+                {'9', "Wes"}
+        };
+    }
+
     return true;
 }
 
@@ -122,11 +163,11 @@ Tb getNextTruthBoothGuess(PmSet* possibleAnswers, TbSet* guessesAlreadyMade)
     for (PmSet::const_iterator iterPerm = possibleAnswers->begin();
          iterPerm != possibleAnswers->end();
          ++iterPerm) {
-        Pm::const_iterator firstIterChar = iterPerm->begin();
+	int i = 0;
         for (Pm::const_iterator iterChar = iterPerm->begin();
             iterChar != iterPerm->end();
             ++iterChar) {
-            ++numOccurrencesOfMatch[Tb(iterChar - firstIterChar, *iterChar)];
+            ++numOccurrencesOfMatch[Tb(i++, *iterChar)];
         }
     }
 
@@ -272,15 +313,62 @@ void getBestGuessFromSubset(ArgsForMinimaxThread* args)
     return;
 }
 
-void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const& settings)
+string getPrintableNames(PerfectMatching const& p,
+                         map<int, string>* femaleNames,
+                         map<char, string>* maleNames) {
+    stringstream printableNamesBuilder;
+
+    int i = 0;
+    for (PerfectMatching::const_iterator it = p.begin(); it != p.end(); it++) {
+        printableNamesBuilder << "    " <<  femaleNames->at(i++)
+                              << " + " << maleNames->at(*it);
+        if (it != p.end() - 1)
+            printableNamesBuilder << endl;
+    }
+
+    return printableNamesBuilder.str();
+}
+
+string getPrintableNames(TruthBooth const& truthBooth,
+                         map<int, string>* femaleNames,
+                         map<char, string>* maleNames) {
+    stringstream printableNamesBuilder;
+
+    printableNamesBuilder << "(" << femaleNames->at(truthBooth.index) << ", "
+                          << maleNames->at(truthBooth.charAtIndex) << ")";
+
+    return printableNamesBuilder.str();
+}
+
+string getPrintableNumbers(PerfectMatching const& p) {
+    stringstream printableNumbersBuilder;
+
+    printableNumbersBuilder << "(";
+    for (PerfectMatching::const_iterator i = p.begin(); i != p.end(); i++) {
+        printableNumbersBuilder << *i;
+        if (i != p.end() - 1)
+            printableNumbersBuilder << ", ";
+    }
+    printableNumbersBuilder << ")";
+
+    return printableNumbersBuilder.str();
+}
+
+void runAreYouTheOne(Pm const& answer, AytoSettings const* settings)
 {
     TbSet* tbGuessesAlreadyMade = new TbSet(); // Queries submitted in truth booth.
     PmSet* pmGuessesAlreadyMade = new PmSet(); // Queries submitted in perfect matching.
     PmSet* possibleAnswers = new PmSet();      // Remaining possibilities for answer.
     possibleAnswers->populateAll();
 
-    if (!settings._isInteractiveMode) {
-        cout << "Answer " << answer << endl;
+    if (!settings->_isInteractiveMode) {
+        if (settings->_isPrintNumbersMode) {
+            cout << "Answer: " << getPrintableNumbers(answer) << endl;
+        } else {
+            cout << "Answer:" << endl
+                 << getPrintableNames(answer, settings->_femaleNames, settings->_maleNames)
+                 << endl;
+        }
     }
 
     while (true) {
@@ -289,12 +377,18 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const& settings)
         Tb nextTbGuess = getNextTruthBoothGuess(possibleAnswers, tbGuessesAlreadyMade);
         tbGuessesAlreadyMade->add(nextTbGuess);
         bool isPairCorrect;
-        if (settings._isInteractiveMode) {
+        if (settings->_isInteractiveMode) {
             string userInput;
             do {
-                cout << "Question: Is there a '" << nextTbGuess.charAtIndex
-                     << "' in position " << nextTbGuess.index
-                     << " (indexed starting with 0)? [yes/no]" << endl;
+                if (settings->_isPrintNumbersMode) {
+                    cout << "Question: Is there a '" << nextTbGuess.charAtIndex
+                         << "' in position " << nextTbGuess.index
+                         << " (indexed starting with 0)? [yes/no]" << endl;
+                } else {
+                    cout << "Question: Are " << settings->_femaleNames->at(nextTbGuess.index)
+                         << " and " << settings->_maleNames->at(nextTbGuess.charAtIndex)
+                         << " matched together? [yes/no]" << endl;
+                }
                 cin >> userInput;
                 isPairCorrect = userInput[0] == 'y' || userInput[0] == 'Y';
             } while (userInput[0] != 'y' && userInput[0] != 'n' &&
@@ -303,36 +397,62 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const& settings)
             isPairCorrect = nextTbGuess.isContainedIn(answer);
         }
         possibleAnswers->filter(nextTbGuess, isPairCorrect);
-        if (settings._isVerboseMode) {
-            cout << "  * Truth Booth: " << nextTbGuess.toString() << endl;
+        if (settings->_isVerboseMode) {
+            cout << "  * Truth Booth: " << flush;
+            if (settings->_isPrintNumbersMode) {
+                cout << getPrintableNumbers(nextTbGuess.toString()) << endl;
+            } else {
+                cout << getPrintableNames(nextTbGuess,
+                                          settings->_femaleNames,
+                                          settings->_maleNames)
+                     << endl;
+            }
+            cout << "  > Feedback: " << (isPairCorrect ? "Yes" : "No") << endl;
             cout << "    Now " << possibleAnswers->size() << " remaining." << endl;
         }
 
         // Submit a full PM as the Perfect Matching.
-        Pm nextPMGuess = getNextPerfectMatchingGuess(possibleAnswers, pmGuessesAlreadyMade);
-        pmGuessesAlreadyMade->add(nextPMGuess);
+        Pm nextPmGuess = getNextPerfectMatchingGuess(possibleAnswers, pmGuessesAlreadyMade);
+        pmGuessesAlreadyMade->add(nextPmGuess);
         int numCorrect;
-        if (settings._isInteractiveMode) {
+        if (settings->_isInteractiveMode) {
             do {
-                cout << "Question: How many of the following "
-                     << "are in the correct spot?" << endl
-                     << getPrintablePerm(nextPMGuess) << endl;
+                if (settings->_isPrintNumbersMode) {
+                    cout << "Question: How many of the following "
+                         << "are in the correct spot?" << endl;
+                    cout << getPrintableNumbers(nextPmGuess) << endl;
+                } else {
+                    cout << "Question: How many of the following "
+                         << "matches are correct?" << endl;
+                    cout << getPrintableNames(nextPmGuess,
+                                              settings->_femaleNames,
+                                              settings->_maleNames)
+                         << endl;
+                }
                 cin >> numCorrect;
             } while (numCorrect < 0 || numCorrect > PERM_LENGTH);
         } else {
-            numCorrect = numInCommon(nextPMGuess, answer);
+            numCorrect = numInCommon(nextPmGuess, answer);
         }
 
-        possibleAnswers->filter(nextPMGuess, numCorrect);
-        if (settings._isVerboseMode) {
-            cout << "  * Perfect Matching: "
-                 << getPrintablePerm(nextPMGuess) << endl;
+        possibleAnswers->filter(nextPmGuess, numCorrect);
+        if (settings->_isVerboseMode) {
+            cout << "  * Perfect Matching: " << flush;
+            if (settings->_isPrintNumbersMode) {
+                cout << getPrintableNumbers(nextPmGuess) << endl;
+            } else {
+                cout << endl << getPrintableNames(nextPmGuess,
+                                                  settings->_femaleNames,
+                                                  settings->_maleNames)
+                     << endl;
+            }
+            cout << "  > Feedback: " << numCorrect << " correct" << endl;
             cout << "    Now " << possibleAnswers->size() << " remaining." << endl;
         }
         if (numCorrect == PERM_LENGTH) {
             break;
         }
-        if (settings._isInteractiveMode && possibleAnswers->size() == 0) {
+        if (settings->_isInteractiveMode && possibleAnswers->size() == 0) {
             cout << "Sorry, that's not a possible combination of responses."
                  << endl << "Please try again." << endl;
             break;
@@ -343,12 +463,35 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const& settings)
     cout << "Results:" << endl;
     for (int i = 0; i < tbGuessesAlreadyMade->size(); ++i) {
         int intWidth = (tbGuessesAlreadyMade->size() < 10 ? 1 : 2);
-        cout << "[Week " << setw(intWidth) << (i + 1) << "] "
-             << tbGuessesAlreadyMade->get(i).toString() << ", "
-             << getPrintablePerm(pmGuessesAlreadyMade->get(i)) << "." << endl;
+        cout << "[Week " << setw(intWidth) << (i + 1) << "] ";
+        if (settings->_isPrintNumbersMode) {
+            cout << getPrintableNumbers(tbGuessesAlreadyMade->get(i).toString())
+                 << ", "
+                 << getPrintableNumbers(pmGuessesAlreadyMade->get(i))
+                 << endl;
+        } else {
+            cout << getPrintableNames(tbGuessesAlreadyMade->get(i),
+                                      settings->_femaleNames,
+                                      settings->_maleNames)
+                 << endl
+                 << getPrintableNames(pmGuessesAlreadyMade->get(i),
+                                      settings->_femaleNames,
+                                      settings->_maleNames)
+                 << endl;
+        }
     }
 
     delete tbGuessesAlreadyMade;
     delete pmGuessesAlreadyMade;
     delete possibleAnswers;
+}
+
+void shufflePerfectMatching(Pm &p) {
+    int last = (int) p.size();
+    while (--last > 0) {
+        int i = rand() % last;
+        char tmp = p[last];
+        p[last] = p[i];
+        p[i] = tmp;
+    }
 }
