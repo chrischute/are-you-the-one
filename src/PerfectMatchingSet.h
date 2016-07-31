@@ -16,41 +16,83 @@ class PerfectMatchingSet {
 private:
     std::vector<PerfectMatching>* data;
 public:
-    // PerfectMatchingSet::iterator: Iterates over the data in set of permutations.
     typedef std::vector<PerfectMatching>::iterator iterator;
-    // PerfectMatchingSet::const_iterator: Iterates over data vector, read only.
     typedef std::vector<PerfectMatching>::const_iterator const_iterator;
 
-    // PerfectMatchingSet(): Initialize empty set of permutations.
     PerfectMatchingSet();
-    // PerfectMatchingSet(iterator, iterator): Initialize a copy from another set of permutations.
     PerfectMatchingSet(iterator begin, iterator end);
-    // ~PerfectMatchingSet: Destroy all associated data.
     ~PerfectMatchingSet();
 
-    // add: add an element to the set of permutations.
-    void add(PerfectMatching&);
-    // begin: get the iterator at the front of this set of permutations.
+    /**
+     * Add an element to the container.
+     * @param pm Element to add to this PerfectMatchingSet.
+     */
+    void add(PerfectMatching& pm);
+
+    /**
+     * Get the begin iterator, pointing to the first element of the container.
+     * @return Beginning iterator for container.
+     */
     iterator begin();
-    // contains: true if and only if this contains specified permutation.
-    bool contains(PerfectMatching const&);
-    // end: get the iterator one past the last element of this set of permutations.
+
+    /**
+     * Check whether this PerfectMatchingSet contains a specific PerfectMatching.
+     * @param pm The perfect matching to check for.
+     * @return True if pm is contained in this PerfectMatchingSet, false otherwise.
+     */
+    bool contains(PerfectMatching const& pm);
+
+    /**
+     * Get the end iterator, one past last element.
+     * @return Terminating iterator for container.
+     */
     iterator end();
-    // filter: filter for only permutations with n_correct matches.
-    void filter(PerfectMatching const&, int);
-    // filter: filter for only that have character m.second at index m.first.
-    void filter(TruthBooth const& m, bool isMatch);
-    // get: get the element at index i, not checking for data bounds.
+
+    /**
+     * Remove all PerfectMatchings which are no longer possible after PM guess
+     * @param pmGuess The PerfectMatching guess that was submitted.
+     * @param numCorrect The feedback on pmGuess, i.e., how many were correct.
+     */
+    void filter(PerfectMatching const& pmGuess, int numCorrect);
+
+    /**
+     * Remove all PerfectMatchings which are no longer possible after TB guess.
+     * @param tbGuess The TruthBooth guess that was submitted.
+     * @param isMatch The feedback on tbGuess, i.e., whether it was a match.
+     */
+    void filter(TruthBooth const& tbGuess, bool isMatch);
+
+    /**
+     * Get the element at index i, not checking for data bounds.
+     * @param i Index of element to get.
+     * @return Element in the i-th position.
+     */
     PerfectMatching& get(int i);
-    // populateAll(): Fills with all permutations of the digits 0 through 9.
+
+    /**
+     * Fill with all permutations of the digits 0 through 9.
+     */
     void populateAll();
-    // populateFromFile(std::string): Fills with all permutations in the file stream.
-    // Format: File should contain a single 10-digit number per line, nothing else.
-    void populateFromFile(std::string filename);
-    // size: get the number of elements in the permutation set.
+
+    /**
+     * Fill with all permutations in the file at specified path.
+     * @param filename
+     * Format: File should contain a single 10-digit number per line, nothing else.
+     */
+    void populateFromFile(std::string);
+
+    /**
+     * Get the number of elements in the permutation set.
+     * @return Number of elements in container.
+     */
     std::vector<PerfectMatching>::size_type size();
-    // splitIntoChunks: split into numChunks evenly sized chunks.
-    PerfectMatchingSet** copyIntoChunks(int);
+
+    /**
+     * Copy container into array of sets with numChunks evenly sized chunks.
+     * @param numChunks Number of chunks in the returned array.
+     * @return Array of pointers to PerfectMatchingSets, each a partition of this set.
+     */
+    PerfectMatchingSet** copyIntoChunks(int numChunks);
 };
 
 #endif

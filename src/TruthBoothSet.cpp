@@ -31,7 +31,7 @@ bool TruthBoothSet::contains(Tb const& m) {
 }
 
 Tb& TruthBoothSet::get(int i) {
-    return this->data->at(i);
+    return this->data->at((unsigned long) i);
 }
 
 vector<Tb>::size_type TruthBoothSet::size() {

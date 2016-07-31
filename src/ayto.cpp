@@ -60,9 +60,8 @@ int main(int argc, char** argv) {
             runAreYouTheOne("", settings);
         } else {
             cout << "Running on a random answer." << endl;
-            PerfectMatching answer = DIGITS;
             std::srand(unsigned(std::time(nullptr)));
-            shufflePerfectMatching(answer);
+            Pm answer = getRandomPerfectMatching();
             runAreYouTheOne(answer, settings);
         }
     } else {
@@ -103,29 +102,29 @@ bool AreYouTheOneSettings::initializeFromArgs(int argc, char** argv) {
     // because the PerfectMatching string is a permutation of their names.
     if (!this->_isPrintNumbersMode) {
         this->_femaleNames = new map<int, string>{
-                {0, "Amber"},
-                {1, "Ashleigh"},
-                {2, "Brittany"},
-                {3, "Coleysia"},
-                {4, "Jacy"},
-                {5, "Jessica"},
-                {6, "Kayla"},
-                {7, "Paige"},
-                {8, "Shanley"},
-                {9, "Simone"}
+                {0, "Alyssa"},
+                {1, "Camille"},
+                {2, "Emma"},
+                {3, "Francesca"},
+                {4, "Julia"},
+                {5, "Kaylen"},
+                {6, "Mikala"},
+                {7, "Nicole"},
+                {8, "Tori"},
+                {9, "Victoria"}
         };
 
         this->_maleNames = new map<char, string>{
-                {'0', "Adam"},
-                {'1', "Chris S."},
-                {'2', "Chris T."},
-                {'3', "Dillan"},
-                {'4', "Dre"},
-                {'5', "Ethan"},
-                {'6', "John"},
-                {'7', "Joey"},
-                {'8', "Ryan"},
-                {'9', "Wes"}
+                {'0', "Asaf"},
+                {'1', "Cam"},
+                {'2', "Cameron"},
+                {'3', "Giovanni"},
+                {'4', "John"},
+                {'5', "Morgan"},
+                {'6', "Prosper"},
+                {'7', "Sam"},
+                {'8', "Stephen"},
+                {'9', "Tyler"}
         };
     }
 
@@ -486,7 +485,8 @@ void runAreYouTheOne(Pm const& answer, AytoSettings const* settings)
     delete possibleAnswers;
 }
 
-void shufflePerfectMatching(Pm &p) {
+Pm getRandomPerfectMatching() {
+    Pm p = DIGITS;
     int last = (int) p.size();
     while (--last > 0) {
         int i = rand() % last;
@@ -494,4 +494,5 @@ void shufflePerfectMatching(Pm &p) {
         p[last] = p[i];
         p[i] = tmp;
     }
+    return p;
 }
