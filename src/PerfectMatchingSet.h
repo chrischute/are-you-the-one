@@ -5,8 +5,8 @@
  * Data structure and operations for permutations.
  */
 
-#ifndef GUARD_PERMS_H
-#define GUARD_PERMS_H
+#ifndef GUARD_PERFECT_MATCHING_SET_H
+#define GUARD_PERFECT_MATCHING_SET_H
 
 #include <algorithm>
 #include <fstream>
@@ -55,4 +55,5 @@ public:
     // splitIntoChunks: split into numChunks evenly sized chunks.
     PerfectMatchingSet** copyIntoChunks(int);
 };
+
 #endif

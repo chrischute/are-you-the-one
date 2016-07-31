@@ -5,8 +5,8 @@
  * Typedef and utilities for working with a single permutation.
  */
 
-#ifndef GUARD_PERM_H
-#define GUARD_PERM_H
+#ifndef GUARD_PERFECT_MATCHING_H
+#define GUARD_PERFECT_MATCHING_H
 
 #include <string>
 

@@ -25,5 +25,4 @@ public:
     std::vector<TruthBooth>::size_type size();
 };
 
-
 #endif

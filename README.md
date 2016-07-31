@@ -4,7 +4,7 @@
 Our goal is to prove that true love can always be found on *Are You The One?*, *i.e.*, nobody should ever lose. The contestants just need to spin up ```g++``` and run this multi-threaded, excessively optimized guess generator. It uses a relatively simple guessing algorithm &mdash; No fortune telling or couple's therapy sessions needed.
 
 ## Try It Out
-Clone this repo, write down a permutation of *{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}*, then run ```./ayto -i``` in the top-level directory. Now just answer the questions as prompted. (This permutation corresponds to exactly one matching, gotten by labeling each gender 0 through 9, writing the women in order, then matching the men to the women. The order of the men describes the matching.)
+Clone this repo, write down a permutation of *{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}*, then run ```make``` followed by ```./ayto -i``` in the top-level directory. Now just answer the questions as prompted. (This permutation corresponds to exactly one matching, gotten by labeling each gender 0 through 9, writing the women in order, then matching the men to the women. The order of the men describes the matching.)
 
 ## Rules of *Are You The One?*
 At the end of each week, the contestants go through two rounds of guessing:

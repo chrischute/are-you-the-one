@@ -36,4 +36,5 @@ public:
                10 * that.index + (that.charAtIndex - '0');
     }
 };
+
 #endif

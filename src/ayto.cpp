@@ -2,12 +2,21 @@
  * ayto.cpp
  * Christopher Chute
  * 
- * Simulates minimax query algorithm for MTV's Are You The One?
+ * Guess generator for MTV's Are You The One?
  */
 
 #include "ayto.h"
+using std::abs;
+using std::cout;
+using std::cin;
+using std::endl;
+using std::pair;
+using std::setw;
+using std::string;
+using std::thread;
+using std::vector;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     AytoSettings* settings = new AytoSettings();
 
     if (settings->initializeFromArgs(argc, argv)) {
@@ -49,7 +58,7 @@ int main(int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
-bool AreYouTheOneSettings::initializeFromArgs(int argc, char **argv) {
+bool AreYouTheOneSettings::initializeFromArgs(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         if (strncmp(argv[i], "-a", 3) == 0) {
             this->_isAllPermutationsMode = true;
@@ -70,7 +79,7 @@ bool AreYouTheOneSettings::initializeFromArgs(int argc, char **argv) {
     return true;
 }
 
-Pm getNextPMGuess(PmSet *possibleAnswers, PmSet *guessesAlreadyMade)
+Pm getNextPerfectMatchingGuess(PmSet* possibleAnswers, PmSet* guessesAlreadyMade)
 {
     if (possibleAnswers->size() == 1) {
         return possibleAnswers->get(0);
@@ -159,7 +168,7 @@ Pm getNextGuessUsingMinimax(PmSet* possibleAnswers, PmSet* guessesAlreadyMade)
     }
 
     for (int id = 0; id < NUM_THREADS; ++id) {
-        ArgsForMinimaxThread *args = new ArgsForMinimaxThread(
+        ArgsForMinimaxThread* args = new ArgsForMinimaxThread(
                 id,
                 possibleAnswers,
                 chunksToEvaluate[id],
@@ -288,7 +297,7 @@ void runAreYouTheOne(Pm const& answer, AreYouTheOneSettings const* settings)
         }
 
         // Submit a full PM as the Perfect Matching.
-        Pm nextPMGuess = getNextPMGuess(possibleAnswers, pmGuessesAlreadyMade);
+        Pm nextPMGuess = getNextPerfectMatchingGuess(possibleAnswers, pmGuessesAlreadyMade);
         pmGuessesAlreadyMade->add(nextPMGuess);
         int numCorrect;
         if (settings->_isInteractiveMode) {

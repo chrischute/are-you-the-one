@@ -23,7 +23,9 @@
 #include "PerfectMatchingSet.h"
 #include "TruthBooth.h"
 #include "TruthBoothSet.h"
-using namespace std;
+
+using std::map;
+using std::mutex;
 
 #define DIGITS ("0123456789") // Available digits for a permutation.
 #define GUESS  ("4579108623") // The fixed guess made in the second turn.
@@ -37,6 +39,7 @@ typedef PerfectMatching Pm;
 typedef PerfectMatchingSet PmSet;
 typedef TruthBooth Tb;
 typedef TruthBoothSet TbSet;
+
 
 typedef struct AreYouTheOneSettings {
     bool _isAllPermutationsMode;
@@ -55,18 +58,18 @@ typedef struct AreYouTheOneSettings {
 } AytoSettings;
 
 struct ArgsForMinimaxThread {
-    int _threadId;              // ID of thread taking these args.
-    PmSet* _possibleAnswers;    // All permutations still possible to be the answer.
-    PmSet* _possibleGuesses;    // The chunk of potential queries to evaluate.
-    PmSet* _guessesAlreadyMade; // All queries made so far.
-    map<Pm, int>* _bestGuesses; // Where each thread will store it's best query.
-    mutex* _writeLock;          // Mutex for the shared _best_queries map.
-    ArgsForMinimaxThread(       // Wordy initializer, but blame it on thread api.
+    int _threadId;                   // ID of thread taking these args.
+    PmSet* _possibleAnswers;         // All permutations still possible to be the answer.
+    PmSet* _possibleGuesses;         // The chunk of potential queries to evaluate.
+    PmSet* _guessesAlreadyMade;      // All queries made so far.
+    std::map<Pm, int>* _bestGuesses; // Where each thread will store it's best query.
+    std::mutex* _writeLock;          // Mutex for the shared _best_queries map.
+    ArgsForMinimaxThread(            // Wordy initializer, but blame it on thread api.
             int threadId,
             PmSet* possibleAnswers,
             PmSet* possibleGuesses,
             PmSet* guessesAlreadyMade,
-            map<Pm, int>* bestGuesses,
+            std::map<Pm, int>* bestGuesses,
             mutex* writeLock)
             :
             _threadId(threadId),
