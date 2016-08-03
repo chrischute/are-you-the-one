@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -460,7 +461,7 @@ void runAreYouTheOne(Pm const& answer, AytoSettings const* settings)
 
     // Print a summary of the game, the guesses made in each week.
     cout << "Results:" << endl;
-    for (int i = 0; i < tbGuessesAlreadyMade->size(); ++i) {
+    for (unsigned int i = 0; i < tbGuessesAlreadyMade->size(); ++i) {
         int intWidth = (tbGuessesAlreadyMade->size() < 10 ? 1 : 2);
         cout << "[Week " << setw(intWidth) << (i + 1) << "] ";
         if (settings->_isPrintNumbersMode) {
