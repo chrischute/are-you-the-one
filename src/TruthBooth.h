@@ -19,11 +19,11 @@ public:
     TruthBooth() : index(0), charAtIndex('0') { }
     TruthBooth(int i, char c) : index(i), charAtIndex(c) { }
     TruthBooth(long i, char c) : index((int) i), charAtIndex(c) { }
-    bool operator==(TruthBooth const& that) const {
+    bool operator==(const TruthBooth& that) const {
         return this->index == that.index &&
                this->charAtIndex == that.charAtIndex;
     }
-    bool operator<(TruthBooth const& that) const {
+    bool operator<(const TruthBooth& that) const {
         return 10 * this->index + (this->charAtIndex - '0') <
                10 * that.index + (that.charAtIndex - '0');
     }
@@ -33,7 +33,7 @@ public:
      * @param pm PerfectMatching to check for this match.
      * @return True if this TruthBooth is a match in pm, false otherwise.
      */
-    bool isContainedIn(PerfectMatching const& pm) {
+    bool isContainedIn(const PerfectMatching& pm) const {
         return pm[this->index] == this->charAtIndex;
     }
 
@@ -41,7 +41,7 @@ public:
      * Convert this TruthBooth to a length-two string: index and charAtIndex.
      * @return String of length two, corresponding to index and charAtIndex.
      */
-    std::string toString() {
+    std::string toString() const {
         const char chars[] = {
                 static_cast<char>('0' + index),
                 this->charAtIndex

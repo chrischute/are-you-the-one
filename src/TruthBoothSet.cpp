@@ -21,19 +21,19 @@ TruthBoothSet::~TruthBoothSet() {
     delete this->data;
 }
 
-void TruthBoothSet::add(Tb& m) {
+void TruthBoothSet::add(const Tb& m) {
     this->data->push_back(m);
 }
 
-bool TruthBoothSet::contains(Tb const& m) {
+bool TruthBoothSet::contains(const Tb& m) const {
     return find(this->data->begin(), this->data->end(), m)
            != this->data->end();
 }
 
-Tb& TruthBoothSet::get(int i) {
+Tb& TruthBoothSet::get(int i) const {
     return this->data->at((unsigned long) i);
 }
 
-vector<Tb>::size_type TruthBoothSet::size() {
+vector<Tb>::size_type TruthBoothSet::size() const {
     return this->data->size();
 }

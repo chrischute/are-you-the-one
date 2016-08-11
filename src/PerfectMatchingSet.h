@@ -27,47 +27,47 @@ public:
      * Add an element to the container.
      * @param pm Element to add to this PerfectMatchingSet.
      */
-    void add(PerfectMatching& pm);
+    void add(const PerfectMatching& pm);
 
     /**
      * Get the begin iterator, pointing to the first element of the container.
      * @return Beginning iterator for container.
      */
-    iterator begin();
+    iterator begin() const;
 
     /**
      * Check whether this PerfectMatchingSet contains a specific PerfectMatching.
      * @param pm The perfect matching to check for.
      * @return True if pm is contained in this PerfectMatchingSet, false otherwise.
      */
-    bool contains(PerfectMatching const& pm);
+    bool contains(const PerfectMatching& pm) const;
 
     /**
      * Get the end iterator, one past last element.
      * @return Terminating iterator for container.
      */
-    iterator end();
+    iterator end() const;
 
     /**
      * Remove all PerfectMatchings which are no longer possible after PM guess
      * @param pmGuess The PerfectMatching guess that was submitted.
      * @param numCorrect The feedback on pmGuess, i.e., how many were correct.
      */
-    void filter(PerfectMatching const& pmGuess, int numCorrect);
+    void filter(const PerfectMatching& pmGuess, int numCorrect);
 
     /**
      * Remove all PerfectMatchings which are no longer possible after TB guess.
      * @param tbGuess The TruthBooth guess that was submitted.
      * @param isMatch The feedback on tbGuess, i.e., whether it was a match.
      */
-    void filter(TruthBooth const& tbGuess, bool isMatch);
+    void filter(const TruthBooth& tbGuess, bool isMatch);
 
     /**
      * Get the element at index i, not checking for data bounds.
      * @param i Index of element to get.
      * @return Element in the i-th position.
      */
-    PerfectMatching& get(int i);
+    PerfectMatching& get(int i) const;
 
     /**
      * Fill with all permutations of the digits 0 through 9.
@@ -85,14 +85,14 @@ public:
      * Get the number of elements in the permutation set.
      * @return Number of elements in container.
      */
-    std::vector<PerfectMatching>::size_type size();
+    std::vector<PerfectMatching>::size_type size() const;
 
     /**
      * Copy container into array of sets with numChunks evenly sized chunks.
      * @param numChunks Number of chunks in the returned array.
      * @return Array of pointers to PerfectMatchingSets, each a partition of this set.
      */
-    PerfectMatchingSet** copyIntoChunks(int numChunks);
+    PerfectMatchingSet** copyIntoChunks(int numChunks) const;
 };
 
 #endif

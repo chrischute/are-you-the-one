@@ -20,31 +20,31 @@ PerfectMatchingSet::PerfectMatchingSet(){
     this->data = new vector<Pm>();
 }
 
-PerfectMatchingSet::PerfectMatchingSet(iterator begin, iterator end) {
-    this->data = new vector<Pm>(begin, end);
+PerfectMatchingSet::PerfectMatchingSet(iterator b, iterator e) {
+    this->data = new vector<Pm>(b, e);
 }
 
 PerfectMatchingSet::~PerfectMatchingSet() {
     delete this->data;
 }
 
-void PerfectMatchingSet::add(Pm& p) {
+void PerfectMatchingSet::add(const PerfectMatching& p) {
     this->data->push_back(p);
 }
 
-PerfectMatchingSet::iterator PerfectMatchingSet::begin() {
+PerfectMatchingSet::iterator PerfectMatchingSet::begin() const {
     return this->data->begin();
 }
 
-bool PerfectMatchingSet::contains(Pm const& p) {
+bool PerfectMatchingSet::contains(const PerfectMatching& p) const {
     return find(this->begin(), this->end(), p) != this->end();
 }
 
-PerfectMatchingSet::iterator PerfectMatchingSet::end() {
+PerfectMatchingSet::iterator PerfectMatchingSet::end() const {
     return this->data->end();
 }
 
-void PerfectMatchingSet::filter(Pm const& p, int n) {
+void PerfectMatchingSet::filter(const PerfectMatching& p, int n) {
     vector<Pm>* newData = new vector<Pm>();
     for (PerfectMatchingSet::iterator it = this->begin(); it != this->end(); ++it) {
         if (numInCommon(p, *it) == n) {
@@ -56,7 +56,7 @@ void PerfectMatchingSet::filter(Pm const& p, int n) {
     this->data = newData;
 }
 
-void PerfectMatchingSet::filter(Tb const& m, bool isMatch) {
+void PerfectMatchingSet::filter(const Tb& m, bool isMatch) {
     vector<Pm>* newData = new vector<Pm>();
     for (PerfectMatchingSet::iterator it = this->begin(); it != this->end(); ++it) {
         if (isMatch == ((*it)[m.index] == m.charAtIndex)) {
@@ -68,7 +68,7 @@ void PerfectMatchingSet::filter(Tb const& m, bool isMatch) {
     this->data = newData;
 }
 
-Pm& PerfectMatchingSet::get(int i) {
+Pm& PerfectMatchingSet::get(int i) const {
     return this->data->at(unsigned(i));
 }
 
@@ -90,11 +90,11 @@ void PerfectMatchingSet::populateFromFile(string filename) {
     inputFile.close();
 }
 
-vector<Pm>::size_type PerfectMatchingSet::size() {
+vector<Pm>::size_type PerfectMatchingSet::size() const {
     return this->data->size();
 }
 
-PerfectMatchingSet** PerfectMatchingSet::copyIntoChunks(int numChunks) {
+PerfectMatchingSet** PerfectMatchingSet::copyIntoChunks(int numChunks) const {
     PerfectMatchingSet** chunks = new PerfectMatchingSet*[numChunks];
     long chunkSize = this->size() / numChunks;
     long numChunksWithOneExtra = this->size() % numChunks;

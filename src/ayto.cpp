@@ -131,7 +131,7 @@ bool AreYouTheOneSettings::initializeFromArgs(int argc, char** argv) {
     return true;
 }
 
-Pm getNextPerfectMatchingGuess(PmSet* possibleAnswers, PmSet* guessesAlreadyMade)
+Pm getNextPerfectMatchingGuess(const PmSet* possibleAnswers, const PmSet* guessesAlreadyMade)
 {
     if (possibleAnswers->size() == 1) {
         return possibleAnswers->get(0);
@@ -147,7 +147,7 @@ Pm getNextPerfectMatchingGuess(PmSet* possibleAnswers, PmSet* guessesAlreadyMade
     }
 }
 
-Tb getNextTruthBoothGuess(PmSet* possibleAnswers, TbSet* guessesAlreadyMade)
+Tb getNextTruthBoothGuess(const PmSet* possibleAnswers, const TbSet* guessesAlreadyMade)
 {
     Tb nextGuess(-1, '_');
     map<Tb, int> numOccurrencesOfMatch;
@@ -192,7 +192,7 @@ Tb getNextTruthBoothGuess(PmSet* possibleAnswers, TbSet* guessesAlreadyMade)
     return nextGuess;
 }
 
-Pm getNextGuessUsingMinimax(PmSet* possibleAnswers, PmSet* guessesAlreadyMade)
+Pm getNextGuessUsingMinimax(const PmSet* possibleAnswers, const PmSet* guessesAlreadyMade)
 {
     // Spin up threads to run minimax in parallel.
     map<Pm, int>* bestGuessFromEachThread = new map<Pm, int>();
@@ -273,7 +273,7 @@ Pm getNextGuessUsingMinimax(PmSet* possibleAnswers, PmSet* guessesAlreadyMade)
     return bestGuess;
 }
 
-void getBestGuessFromSubset(ArgsForMinimaxThread* args)
+void getBestGuessFromSubset(const ArgsForMinimaxThread *args)
 {
     // Find the query in possibleGuesses which eliminates the most possible answers.
     Pm bestGuess = DIGITS;
@@ -312,9 +312,9 @@ void getBestGuessFromSubset(ArgsForMinimaxThread* args)
     return;
 }
 
-string getPrintableNames(PerfectMatching const& p,
-                         map<int, string>* femaleNames,
-                         map<char, string>* maleNames) {
+string getPrintableNames(const PerfectMatching& p,
+                         const map<int, string>* femaleNames,
+                         const map<char, string>* maleNames) {
     stringstream printableNamesBuilder;
 
     int i = 0;
@@ -328,9 +328,9 @@ string getPrintableNames(PerfectMatching const& p,
     return printableNamesBuilder.str();
 }
 
-string getPrintableNames(TruthBooth const& truthBooth,
-                         map<int, string>* femaleNames,
-                         map<char, string>* maleNames) {
+string getPrintableNames(const TruthBooth& truthBooth,
+                         const map<int, string>* femaleNames,
+                         const map<char, string>* maleNames) {
     stringstream printableNamesBuilder;
 
     printableNamesBuilder << "(" << femaleNames->at(truthBooth.index) << ", "
@@ -339,7 +339,7 @@ string getPrintableNames(TruthBooth const& truthBooth,
     return printableNamesBuilder.str();
 }
 
-string getPrintableNumbers(PerfectMatching const& p) {
+string getPrintableNumbers(const PerfectMatching& p) {
     stringstream printableNumbersBuilder;
 
     printableNumbersBuilder << "(";
@@ -353,7 +353,7 @@ string getPrintableNumbers(PerfectMatching const& p) {
     return printableNumbersBuilder.str();
 }
 
-void runAreYouTheOne(Pm const& answer, AytoSettings const* settings)
+void runAreYouTheOne(const Pm& answer, const AytoSettings* settings)
 {
     TbSet* tbGuessesAlreadyMade = new TbSet(); // Queries submitted in truth booth.
     PmSet* pmGuessesAlreadyMade = new PmSet(); // Queries submitted in perfect matching.

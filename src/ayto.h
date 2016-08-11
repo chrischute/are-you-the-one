@@ -60,16 +60,16 @@ typedef struct AreYouTheOneSettings {
  */
 struct ArgsForMinimaxThread {
     int _threadId;                   // ID of thread taking these args.
-    PmSet* _possibleAnswers;         // All permutations still possible to be the answer.
-    PmSet* _possibleGuesses;         // The chunk of potential queries to evaluate.
-    PmSet* _guessesAlreadyMade;      // All queries made so far.
+    const PmSet* _possibleAnswers;   // All permutations still possible to be the answer.
+    const PmSet* _possibleGuesses;   // The chunk of potential queries to evaluate.
+    const PmSet* _guessesAlreadyMade;// All queries made so far.
     std::map<Pm, int>* _bestGuesses; // Where each thread will store it's best query.
     std::mutex* _writeLock;          // Mutex for the shared _best_queries map.
     ArgsForMinimaxThread(            // Wordy initializer, but blame it on thread api.
             int threadId,
-            PmSet* possibleAnswers,
-            PmSet* possibleGuesses,
-            PmSet* guessesAlreadyMade,
+            const PmSet* possibleAnswers,
+            const PmSet* possibleGuesses,
+            const PmSet* guessesAlreadyMade,
             std::map<Pm, int>* bestGuesses,
             mutex* writeLock)
             :
@@ -88,7 +88,7 @@ struct ArgsForMinimaxThread {
  * @param argsForMinimaxThread Contains chunk to evaluate, info needed to
  * determine the best guess, and pointers for placing the best guess when found.
  */
-void getBestGuessFromSubset(ArgsForMinimaxThread *argsForMinimaxThread);
+void getBestGuessFromSubset(const ArgsForMinimaxThread* argsForMinimaxThread);
 
 /**
  * Apply minimax algorithm to find the best next PerfectMatching to guess.
@@ -96,7 +96,7 @@ void getBestGuessFromSubset(ArgsForMinimaxThread *argsForMinimaxThread);
  * @param guessesAlreadyMade Guesses already submitted in Perfect Matching stage.
  * @return The best guess as determined by the minimax algorithm.
  */
-Pm getNextGuessUsingMinimax(PmSet* possibleAnswers, PmSet* guessesAlreadyMade);
+Pm getNextGuessUsingMinimax(const PmSet* possibleAnswers, const PmSet* guessesAlreadyMade);
 
 /**
  * Find the best next PerfectMatching to guess. May not require minimax.
@@ -104,7 +104,7 @@ Pm getNextGuessUsingMinimax(PmSet* possibleAnswers, PmSet* guessesAlreadyMade);
  * @param guessesAlreadyMade Guesses already submitted in Perfect Matching stage.
  * @return Best guess as determined by the minimax algorithm.
  */
-Pm getNextPerfectMatchingGuess(PmSet* possibleAnswers, PmSet* guessesAlreadyMade);
+Pm getNextPerfectMatchingGuess(const PmSet* possibleAnswers, const PmSet* guessesAlreadyMade);
 
 /**
  * Find the best next TruthBooth to guess. Chooses the pair which occurs in
@@ -114,14 +114,14 @@ Pm getNextPerfectMatchingGuess(PmSet* possibleAnswers, PmSet* guessesAlreadyMade
  * @param guessesAlreadyMade Guesses already submitted in Perfect Matching stage.
  * @return Best TruthBooth guess as determined by the minimax algorithm.
  */
-Tb getNextTruthBoothGuess(PmSet* possibleAnswers, TbSet* guessesAlreadyMade);
+Tb getNextTruthBoothGuess(const PmSet* possibleAnswers, const TbSet* guessesAlreadyMade);
 
 /**
  * Run a single season of Are You The One.
  * @param answer Hidden answer, i.e., the matching of contestants.
  * @param settings Settings for the simulator, e.g., interactive and verbose.
  */
-void runAreYouTheOne(PerfectMatching const& answer, AytoSettings const* settings);
+void runAreYouTheOne(const PerfectMatching& answer, const AytoSettings* settings);
 
 /**
  * Convert a PerfectMatching to a printable representation using names of
@@ -131,9 +131,9 @@ void runAreYouTheOne(PerfectMatching const& answer, AytoSettings const* settings
  * @param maleNames Char-to-name of guy mapping for a permutation.
  * @return String to be logged to the console.
  */
-std::string getPrintableNames(PerfectMatching const& perfectMatching,
-                              std::map<int, std::string>* femaleNames,
-                              std::map<char, std::string>* maleNames);
+std::string getPrintableNames(const PerfectMatching& perfectMatching,
+                              const std::map<int, std::string>* femaleNames,
+                              const std::map<char, std::string>* maleNames);
 
 /**
  * Convert a TruthBooth guess to a printable representation using names of
@@ -143,16 +143,16 @@ std::string getPrintableNames(PerfectMatching const& perfectMatching,
  * @param maleNames Char-to-name of guy mapping for a permutation.
  * @return String to be logged to the console.
  */
-std::string getPrintableNames(TruthBooth const& truthBooth,
-                              std::map<int, std::string>* femaleNames,
-                              std::map<char, std::string>* maleNames);
+std::string getPrintableNames(const TruthBooth& truthBooth,
+                              const std::map<int, std::string>* femaleNames,
+                              const std::map<char, std::string>* maleNames);
 
 /**
  * Convert a PerfectMatching to a printable representation using numbers.
  * @param perfectMatching Full matching to convert to a printable string.
  * @return String to be logged to the console.
  */
-std::string getPrintableNumbers(PerfectMatching const& perfectMatching);
+std::string getPrintableNumbers(const PerfectMatching& perfectMatching);
 
 /**
  * Get a random perfect matching.
