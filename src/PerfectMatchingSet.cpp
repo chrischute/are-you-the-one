@@ -5,6 +5,7 @@
  * Data structure and utilities for container of Perfect Matching guesses.
  */
 
+#include <algorithm>
 #include <cassert>
 #include <fstream>
 #include "PerfectMatchingSet.h"
